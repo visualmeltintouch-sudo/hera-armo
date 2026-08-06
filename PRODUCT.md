@@ -8,7 +8,7 @@ web
 
 ## Users
 
-Visitatori di eventi/fiere HERA (utility italiana — acqua, energia, ambiente). Pubblico generico, tutte le età (dai 18 ai 79 anni), che interagisce con un totem touchscreen 1080x1920px in uno stand fisico. Due fasce anagrafiche con tono di voce e domande distinte: giovani (nati dal 1997+) e classic (nati prima del 1997).
+Visitatori di eventi/fiere HERA (utility italiana — acqua, energia, ambiente). Pubblico generico, tutte le età (dai 18 ai 79 anni), che interagisce con un totem touchscreen 1080x1920px in uno stand fisico. Due fasce anagrafiche con tono di voce e domande distinte: giovani (nati dal 1982+, Gen Z e Millennials) e classic (nati prima del 1982, Gen X e Boomers).
 
 Utenti secondari: operatori allo stand (verifica codici premio) e admin (gestione eventi, domande, premi).
 

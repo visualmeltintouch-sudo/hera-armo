@@ -19,7 +19,7 @@ CREATE TABLE hera_armo_events (
 CREATE TABLE hera_armo_settings (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   event_id uuid NOT NULL UNIQUE REFERENCES hera_armo_events(id) ON DELETE CASCADE,
-  year_cutoff integer NOT NULL DEFAULT 1997,
+  year_cutoff integer NOT NULL DEFAULT 1982,
   hera_threshold integer NOT NULL DEFAULT 2,
   questions_per_session integer NOT NULL DEFAULT 10,
   created_at timestamptz NOT NULL DEFAULT now()

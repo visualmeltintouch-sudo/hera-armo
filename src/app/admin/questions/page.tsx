@@ -221,8 +221,8 @@ function QuestionsContent() {
                 })
               }
             >
-              <option value="young">Giovani (1997+)</option>
-              <option value="classic">Classic (pre-1997)</option>
+              <option value="young">Giovani (1982+)</option>
+              <option value="classic">Classic (pre-1982)</option>
             </select>
           </Field>
           <Field label="Ordine">

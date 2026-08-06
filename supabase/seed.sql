@@ -16,7 +16,7 @@ RETURNING id INTO v_event_id;
 
 -- Settings
 INSERT INTO hera_armo_settings (event_id, year_cutoff, hera_threshold, questions_per_session)
-VALUES (v_event_id, 1997, 2, 10);
+VALUES (v_event_id, 1982, 2, 10);
 
 -- ============================================================
 -- DOMANDE GIOVANI (Proposta 1 — young, nati dal 1997+)

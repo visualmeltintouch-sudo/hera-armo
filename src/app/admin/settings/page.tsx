@@ -15,7 +15,7 @@ function SettingsContent() {
   const { selectedEventId } = useEventSelector();
   const [settings, setSettings] = useState<ArmoSettings | null>(null);
   const [form, setForm] = useState({
-    year_cutoff: 1997,
+    year_cutoff: 1982,
     hera_threshold: 2,
     questions_per_session: 10,
   });
@@ -85,7 +85,7 @@ function SettingsContent() {
             onChange={(e) =>
               setForm({
                 ...form,
-                year_cutoff: parseInt(e.target.value) || 1997,
+                year_cutoff: parseInt(e.target.value) || 1982,
               })
             }
           />
