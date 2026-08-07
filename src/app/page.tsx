@@ -26,6 +26,19 @@ type Screen =
   | "prize"
   | "error";
 
+function HeraLogo({ className }: { className?: string }) {
+  return (
+    <img
+      src="/brand/hera-logo.svg"
+      alt="Gruppo Hera"
+      className={className}
+      onError={(e) => {
+        (e.currentTarget as HTMLImageElement).style.display = "none";
+      }}
+    />
+  );
+}
+
 export default function TotemPage() {
   const supabase = createClient();
 
@@ -149,7 +162,7 @@ export default function TotemPage() {
         } else {
           submitQuiz(newScores, newAnswers);
         }
-      }, 600);
+      }, 500);
     },
     [animating, questions, currentIndex, scores, answers]
   );
@@ -194,7 +207,8 @@ export default function TotemPage() {
       // postcard generation failed silently
     }
 
-    setScreen("result");
+    // Small delay so "calculating" reads as a genuine reveal beat.
+    setTimeout(() => setScreen("result"), 1400);
   }
 
   function handleRestart() {
@@ -212,25 +226,13 @@ export default function TotemPage() {
   const gradient = scoresToGradient(scores);
 
   return (
-    <div className="w-[1080px] h-[1920px] mx-auto relative overflow-hidden bg-background text-foreground">
-      {/* Gradient background */}
-      <div
-        className="absolute inset-0 transition-all duration-700 ease-out"
-        style={{
-          background:
-            screen === "quiz" || screen === "calculating" || screen === "result"
-              ? gradient.css
-              : `linear-gradient(135deg, ${HERA_COLORS.verde}, ${HERA_COLORS.ciano}, ${HERA_COLORS.magenta})`,
-          opacity:
-            screen === "intro" || screen === "birth_year"
-              ? 0.15
-              : screen === "quiz"
-                ? 0.3
-                : 0.6,
-        }}
-      />
+    <div className="w-[1080px] h-[1920px] mx-auto relative overflow-hidden bg-background text-foreground flex flex-col">
+      {/* Top bar: logo, always present, always neutral */}
+      <header className="flex items-center justify-center pt-14 pb-8 shrink-0">
+        <HeraLogo className="h-16 w-auto" />
+      </header>
 
-      <div className="relative z-10 flex flex-col items-center justify-center h-full p-16">
+      <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-16 pb-16">
         {screen === "loading" && (
           <p className="text-muted-foreground text-2xl">Caricamento...</p>
         )}
@@ -247,7 +249,7 @@ export default function TotemPage() {
         {screen === "intro" && (
           <div className="text-center space-y-16">
             <div className="space-y-6">
-              <h1 className="text-7xl font-bold tracking-tight leading-tight">
+              <h1 className="text-7xl font-bold tracking-tight leading-tight text-foreground">
                 LA TUA
                 <br />
                 ARMOCROMIA
@@ -261,13 +263,13 @@ export default function TotemPage() {
                   HERAVIGLIOSA
                 </span>
               </h1>
-              <p className="text-2xl text-foreground/70 max-w-[700px] mx-auto leading-relaxed">
+              <p className="text-2xl text-muted-foreground max-w-[700px] mx-auto leading-relaxed">
                 Scopri il tuo profilo attraverso le tue scelte quotidiane
               </p>
             </div>
             <button
               onClick={handleStartQuiz}
-              className="text-3xl font-semibold px-16 py-6 rounded-2xl text-white transition-transform hover:scale-105"
+              className="text-3xl font-semibold px-16 py-6 rounded-full text-white transition-transform hover:scale-105 shadow-lg"
               style={{
                 background: `linear-gradient(135deg, ${HERA_COLORS.verde}, ${HERA_COLORS.ciano}, ${HERA_COLORS.magenta})`,
               }}
@@ -279,7 +281,7 @@ export default function TotemPage() {
 
         {screen === "birth_year" && (
           <div className="text-center space-y-12">
-            <h2 className="text-5xl font-bold">In che anno sei nato/a?</h2>
+            <h2 className="text-5xl font-bold text-foreground">In che anno sei nato/a?</h2>
             <div className="space-y-8">
               <input
                 type="number"
@@ -287,7 +289,7 @@ export default function TotemPage() {
                 value={birthYear}
                 onChange={(e) => setBirthYear(e.target.value)}
                 placeholder="es. 1995"
-                className="w-[400px] text-center text-5xl font-bold bg-transparent border-b-4 border-border focus:border-primary outline-none py-4 placeholder-muted-foreground"
+                className="w-[400px] text-center text-5xl font-bold bg-transparent border-b-4 border-border focus:border-primary outline-none py-4 placeholder-muted-foreground/50 text-foreground"
                 min={1920}
                 max={2010}
               />
@@ -295,7 +297,7 @@ export default function TotemPage() {
                 <button
                   onClick={handleBirthYearSubmit}
                   disabled={!birthYear || parseInt(birthYear) < 1920 || parseInt(birthYear) > 2010}
-                  className="text-2xl font-semibold px-12 py-5 rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground disabled:opacity-30 transition-all"
+                  className="text-2xl font-semibold px-12 py-5 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground disabled:opacity-30 transition-all"
                 >
                   CONTINUA
                 </button>
@@ -305,67 +307,53 @@ export default function TotemPage() {
         )}
 
         {screen === "quiz" && questions.length > 0 && (
-          <div className="w-full flex flex-col items-center space-y-12">
-            {/* Progress */}
+          <div className="w-full flex flex-col items-center space-y-16">
+            {/* Progress — neutral only, no color hint of the outcome */}
             <div className="w-full max-w-[900px]">
-              <div className="flex justify-between text-lg text-foreground/70 mb-3">
+              <div className="flex justify-between text-lg text-muted-foreground mb-3">
                 <span>Domanda {currentIndex + 1} di {questions.length}</span>
               </div>
-              <div className="w-full bg-muted/60 rounded-full h-3 overflow-hidden">
+              <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
                 <div
-                  className="h-full rounded-full transition-all duration-500"
-                  style={{
-                    width: `${((currentIndex + 1) / questions.length) * 100}%`,
-                    background: `linear-gradient(90deg, ${HERA_COLORS.verde}, ${HERA_COLORS.ciano}, ${HERA_COLORS.magenta})`,
-                  }}
+                  className="h-full rounded-full bg-foreground/70 transition-all duration-500"
+                  style={{ width: `${((currentIndex + 1) / questions.length) * 100}%` }}
                 />
               </div>
-            </div>
-
-            {/* Score indicators */}
-            <div className="flex gap-8">
-              {[
-                { label: "V", value: scores.verde, color: HERA_COLORS.verde },
-                { label: "C", value: scores.ciano, color: HERA_COLORS.ciano },
-                { label: "M", value: scores.magenta, color: HERA_COLORS.magenta },
-              ].map((s) => (
-                <div key={s.label} className="text-center">
-                  <div
-                    className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold transition-all duration-500"
-                    style={{ backgroundColor: s.color + "40", color: s.color }}
-                  >
-                    {s.value}
-                  </div>
-                  <span className="text-xs text-muted-foreground mt-1">{s.label}</span>
-                </div>
-              ))}
             </div>
 
             {/* Question */}
             <div
               key={questions[currentIndex].id}
-              className={`w-full max-w-[900px] space-y-10 transition-all duration-300 ${animating ? "opacity-50 scale-95" : "opacity-100 scale-100"}`}
+              className={`w-full max-w-[900px] space-y-12 transition-all duration-300 ${animating ? "opacity-40 scale-[0.97]" : "opacity-100 scale-100"}`}
             >
-              <h2 className="text-4xl font-bold text-center leading-snug min-h-[180px] flex items-center justify-center">
+              <h2 className="text-4xl font-bold text-center leading-snug min-h-[180px] flex items-center justify-center text-foreground">
                 {questions[currentIndex].question_text}
               </h2>
 
-              <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-6">
                 <button
                   onClick={() => handleAnswer("a")}
                   disabled={animating}
-                  className="w-full text-left text-2xl p-8 rounded-2xl border-2 border-foreground/20 bg-foreground/5 hover:bg-foreground/15 hover:border-foreground/40 active:scale-[0.98] transition-all duration-200"
+                  className="flex flex-col items-center gap-5 text-center p-10 rounded-3xl border-2 border-border bg-card hover:border-primary hover:shadow-xl active:scale-[0.97] transition-all duration-200"
                 >
-                  <span className="font-bold text-hera-ciano mr-4">A</span>
-                  {questions[currentIndex].option_a_text}
+                  <span className="text-6xl" aria-hidden>
+                    {questions[currentIndex].option_a_icon}
+                  </span>
+                  <span className="text-xl font-medium leading-snug text-foreground">
+                    {questions[currentIndex].option_a_text}
+                  </span>
                 </button>
                 <button
                   onClick={() => handleAnswer("b")}
                   disabled={animating}
-                  className="w-full text-left text-2xl p-8 rounded-2xl border-2 border-foreground/20 bg-foreground/5 hover:bg-foreground/15 hover:border-foreground/40 active:scale-[0.98] transition-all duration-200"
+                  className="flex flex-col items-center gap-5 text-center p-10 rounded-3xl border-2 border-border bg-card hover:border-primary hover:shadow-xl active:scale-[0.97] transition-all duration-200"
                 >
-                  <span className="font-bold text-hera-magenta mr-4">B</span>
-                  {questions[currentIndex].option_b_text}
+                  <span className="text-6xl" aria-hidden>
+                    {questions[currentIndex].option_b_icon}
+                  </span>
+                  <span className="text-xl font-medium leading-snug text-foreground">
+                    {questions[currentIndex].option_b_text}
+                  </span>
                 </button>
               </div>
             </div>
@@ -373,12 +361,9 @@ export default function TotemPage() {
         )}
 
         {screen === "calculating" && (
-          <div className="text-center space-y-8 animate-pulse">
-            <div
-              className="w-48 h-48 rounded-full mx-auto"
-              style={{ background: gradient.css }}
-            />
-            <p className="text-3xl font-bold">Stiamo elaborando il tuo profilo...</p>
+          <div className="text-center space-y-8">
+            <div className="w-32 h-32 rounded-full border-4 border-muted border-t-primary mx-auto animate-spin" />
+            <p className="text-3xl font-bold text-foreground">Stiamo elaborando il tuo profilo...</p>
           </div>
         )}
 
@@ -390,14 +375,14 @@ export default function TotemPage() {
             />
 
             <div className="space-y-4">
-              <h2 className="text-5xl font-bold">
+              <h2 className="text-5xl font-bold text-foreground">
                 {profile?.name || result.profile_key.toUpperCase()}
               </h2>
               <p className="text-3xl text-foreground/80 italic max-w-[800px] mx-auto">
                 {profile?.claim || ""}
               </p>
               {profile?.description && (
-                <p className="text-xl text-foreground/70 max-w-[700px] mx-auto leading-relaxed mt-4">
+                <p className="text-xl text-muted-foreground max-w-[700px] mx-auto leading-relaxed mt-4">
                   {profile.description}
                 </p>
               )}
@@ -422,7 +407,7 @@ export default function TotemPage() {
               {postcardUrl && (
                 <button
                   onClick={() => downloadPostcard(postcardUrl)}
-                  className="text-2xl font-semibold px-12 py-5 rounded-2xl text-white transition-transform hover:scale-105"
+                  className="text-2xl font-semibold px-12 py-5 rounded-full text-white transition-transform hover:scale-105 shadow-lg"
                   style={{
                     background: `linear-gradient(135deg, ${HERA_COLORS.verde}, ${HERA_COLORS.ciano}, ${HERA_COLORS.magenta})`,
                   }}
@@ -454,7 +439,7 @@ export default function TotemPage() {
           <div className="text-center space-y-12">
             {result.prize ? (
               <>
-                <h2 className="text-6xl font-bold">HAI VINTO!</h2>
+                <h2 className="text-6xl font-bold text-foreground">HAI VINTO!</h2>
                 <div className="space-y-4">
                   <p className="text-3xl text-foreground/80">{result.prize.name}</p>
                   {result.prize.image_url && (
@@ -477,8 +462,8 @@ export default function TotemPage() {
               </>
             ) : (
               <>
-                <h2 className="text-5xl font-bold">Grazie per aver partecipato!</h2>
-                <p className="text-2xl text-foreground/70">
+                <h2 className="text-5xl font-bold text-foreground">Grazie per aver partecipato!</h2>
+                <p className="text-2xl text-muted-foreground">
                   Passa allo stand per ritirare il tuo gadget
                 </p>
               </>

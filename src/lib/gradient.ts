@@ -36,27 +36,38 @@ export function determineProfile(
   return "energia";
 }
 
+/**
+ * Places one stop per color at the midpoint of its cumulative weight share,
+ * so the blend is continuous (no repeated-color bands) and the dominant
+ * color still occupies visibly more of the gradient.
+ */
+function weightedStops(weights: { verde: number; ciano: number; magenta: number }) {
+  const order: { key: keyof typeof weights; color: string }[] = [
+    { key: "verde", color: HERA_COLORS.verde },
+    { key: "ciano", color: HERA_COLORS.ciano },
+    { key: "magenta", color: HERA_COLORS.magenta },
+  ];
+
+  // Floor so no color ever fully disappears from the blend.
+  const floored = order.map((o) => ({ ...o, w: Math.max(weights[o.key], 0.08) }));
+  const total = floored.reduce((s, o) => s + o.w, 0);
+
+  let cumulative = 0;
+  return floored.map((o) => {
+    const midpoint = (cumulative + o.w / 2) / total;
+    cumulative += o.w;
+    return { color: o.color, position: midpoint * 100 };
+  });
+}
+
 export function scoresToGradient(scores: ColorScores): GradientResult {
   const weights = normalizeScores(scores);
   const profileKey = determineProfile(scores, 2);
 
-  const stops: string[] = [];
-  let position = 0;
-
-  const entries = [
-    { weight: weights.verde, color: HERA_COLORS.verde },
-    { weight: weights.ciano, color: HERA_COLORS.ciano },
-    { weight: weights.magenta, color: HERA_COLORS.magenta },
-  ].sort((a, b) => b.weight - a.weight);
-
-  for (const entry of entries) {
-    const span = Math.max(entry.weight * 100, 5);
-    stops.push(`${entry.color} ${position.toFixed(1)}%`);
-    position += span;
-    stops.push(`${entry.color} ${Math.min(position, 100).toFixed(1)}%`);
-  }
-
-  const css = `linear-gradient(135deg, ${stops.join(", ")})`;
+  const stops = weightedStops(weights);
+  const css = `linear-gradient(135deg, ${stops
+    .map((s) => `${s.color} ${s.position.toFixed(1)}%`)
+    .join(", ")})`;
 
   return { css, profileKey, weights };
 }
@@ -68,21 +79,25 @@ export function drawGradientOnCanvas(
   scores: ColorScores
 ): void {
   const weights = normalizeScores(scores);
+  const stops = weightedStops(weights);
 
-  const gradient = ctx.createLinearGradient(0, 0, width, height);
+  // Diagonal gradient matching the CSS `135deg` direction.
+  const angle = (135 * Math.PI) / 180;
+  const dx = Math.cos(angle);
+  const dy = Math.sin(angle);
+  const halfDiag = (Math.abs(dx) * width + Math.abs(dy) * height) / 2;
+  const cx = width / 2;
+  const cy = height / 2;
 
-  const entries = [
-    { weight: weights.verde, color: HERA_COLORS.verde },
-    { weight: weights.ciano, color: HERA_COLORS.ciano },
-    { weight: weights.magenta, color: HERA_COLORS.magenta },
-  ].sort((a, b) => b.weight - a.weight);
+  const gradient = ctx.createLinearGradient(
+    cx - dx * halfDiag,
+    cy - dy * halfDiag,
+    cx + dx * halfDiag,
+    cy + dy * halfDiag
+  );
 
-  let position = 0;
-  for (const entry of entries) {
-    const span = Math.max(entry.weight, 0.05);
-    gradient.addColorStop(Math.min(position, 1), entry.color);
-    position += span;
-    gradient.addColorStop(Math.min(position, 1), entry.color);
+  for (const s of stops) {
+    gradient.addColorStop(Math.min(Math.max(s.position / 100, 0), 1), s.color);
   }
 
   ctx.fillStyle = gradient;

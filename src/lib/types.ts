@@ -30,10 +30,12 @@ export interface ArmoQuestion {
   sort_order: number;
   question_text: string;
   option_a_text: string;
+  option_a_icon: string;
   option_a_verde: number;
   option_a_ciano: number;
   option_a_magenta: number;
   option_b_text: string;
+  option_b_icon: string;
   option_b_verde: number;
   option_b_ciano: number;
   option_b_magenta: number;

@@ -29,10 +29,12 @@ function QuestionsContent() {
     sort_order: 0,
     question_text: "",
     option_a_text: "",
+    option_a_icon: "🌱",
     option_a_verde: 0,
     option_a_ciano: 0,
     option_a_magenta: 0,
     option_b_text: "",
+    option_b_icon: "⚡",
     option_b_verde: 0,
     option_b_ciano: 0,
     option_b_magenta: 0,
@@ -68,10 +70,12 @@ function QuestionsContent() {
       sort_order: q.sort_order,
       question_text: q.question_text,
       option_a_text: q.option_a_text,
+      option_a_icon: q.option_a_icon,
       option_a_verde: q.option_a_verde,
       option_a_ciano: q.option_a_ciano,
       option_a_magenta: q.option_a_magenta,
       option_b_text: q.option_b_text,
+      option_b_icon: q.option_b_icon,
       option_b_verde: q.option_b_verde,
       option_b_ciano: q.option_b_ciano,
       option_b_magenta: q.option_b_magenta,
@@ -127,7 +131,7 @@ function QuestionsContent() {
         <button
           onClick={openCreate}
           disabled={!selectedEventId}
-          className="bg-primary hover:bg-primary/90 disabled:opacity-50 text-foreground text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+          className="bg-primary hover:bg-primary/90 disabled:opacity-50 text-primary-foreground text-sm font-medium px-4 py-2 rounded-lg transition-colors"
         >
           + Nuova Domanda
         </button>
@@ -253,16 +257,29 @@ function QuestionsContent() {
 
         <div className="border border-border rounded-lg p-4 space-y-3">
           <p className="text-sm font-medium text-foreground/80">Opzione A</p>
-          <Field label="Testo">
-            <input
-              className={inputClass}
-              value={form.option_a_text}
-              onChange={(e) =>
-                setForm({ ...form, option_a_text: e.target.value })
-              }
-              required
-            />
-          </Field>
+          <div className="grid grid-cols-[80px_1fr] gap-3">
+            <Field label="Icona">
+              <input
+                className={inputClass + " text-center text-xl"}
+                value={form.option_a_icon}
+                onChange={(e) =>
+                  setForm({ ...form, option_a_icon: e.target.value })
+                }
+                maxLength={4}
+                required
+              />
+            </Field>
+            <Field label="Testo">
+              <input
+                className={inputClass}
+                value={form.option_a_text}
+                onChange={(e) =>
+                  setForm({ ...form, option_a_text: e.target.value })
+                }
+                required
+              />
+            </Field>
+          </div>
           <div className="grid grid-cols-3 gap-3">
             <Field label="Verde">{numField("option_a_verde", form.option_a_verde)}</Field>
             <Field label="Ciano">{numField("option_a_ciano", form.option_a_ciano)}</Field>
@@ -272,16 +289,29 @@ function QuestionsContent() {
 
         <div className="border border-border rounded-lg p-4 space-y-3">
           <p className="text-sm font-medium text-foreground/80">Opzione B</p>
-          <Field label="Testo">
-            <input
-              className={inputClass}
-              value={form.option_b_text}
-              onChange={(e) =>
-                setForm({ ...form, option_b_text: e.target.value })
-              }
-              required
-            />
-          </Field>
+          <div className="grid grid-cols-[80px_1fr] gap-3">
+            <Field label="Icona">
+              <input
+                className={inputClass + " text-center text-xl"}
+                value={form.option_b_icon}
+                onChange={(e) =>
+                  setForm({ ...form, option_b_icon: e.target.value })
+                }
+                maxLength={4}
+                required
+              />
+            </Field>
+            <Field label="Testo">
+              <input
+                className={inputClass}
+                value={form.option_b_text}
+                onChange={(e) =>
+                  setForm({ ...form, option_b_text: e.target.value })
+                }
+                required
+              />
+            </Field>
+          </div>
           <div className="grid grid-cols-3 gap-3">
             <Field label="Verde">{numField("option_b_verde", form.option_b_verde)}</Field>
             <Field label="Ciano">{numField("option_b_ciano", form.option_b_ciano)}</Field>

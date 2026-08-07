@@ -108,7 +108,7 @@ export default function OperatorsPage() {
         <h1 className="text-xl font-bold text-foreground">Operatori</h1>
         <button
           onClick={openCreate}
-          className="bg-primary hover:bg-primary/90 text-foreground text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+          className="bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-medium px-4 py-2 rounded-lg transition-colors"
         >
           + Nuovo Operatore
         </button>

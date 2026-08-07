@@ -24,9 +24,12 @@ export function Sidebar({ onLogout, userEmail }: SidebarProps) {
 
   return (
     <aside className="w-64 bg-card border-r border-border flex flex-col min-h-screen">
-      <div className="p-6 border-b border-border">
-        <h1 className="text-lg font-bold text-foreground">Armocromia</h1>
-        <p className="text-xs text-muted-foreground mt-1">HERA Admin</p>
+      <div className="p-6 border-b border-border space-y-3">
+        <img src="/brand/hera-logo.svg" alt="Gruppo Hera" className="h-8 w-auto" />
+        <div>
+          <h1 className="text-lg font-bold text-foreground">Armocromia</h1>
+          <p className="text-xs text-muted-foreground mt-1">Admin</p>
+        </div>
       </div>
 
       <nav className="flex-1 p-4 space-y-1">

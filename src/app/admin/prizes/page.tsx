@@ -124,7 +124,7 @@ function PrizesContent() {
         <button
           onClick={openCreate}
           disabled={!selectedEventId}
-          className="bg-primary hover:bg-primary/90 disabled:opacity-50 text-foreground text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+          className="bg-primary hover:bg-primary/90 disabled:opacity-50 text-primary-foreground text-sm font-medium px-4 py-2 rounded-lg transition-colors"
         >
           + Nuovo Premio
         </button>
