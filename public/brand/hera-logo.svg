@@ -1,4 +1,9 @@
-<svg width="220" height="64" viewBox="0 0 220 64" xmlns="http://www.w3.org/2000/svg">
-  <!-- PLACEHOLDER — replace with the real Gruppo Hera logo file (public/brand/hera-logo.svg or .png) -->
-  <text x="0" y="44" font-family="Circular Std, Arial, sans-serif" font-weight="700" font-size="40" fill="#0a0609">HERA</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 180">
+  <g>
+    <path d="M5 10 C5 10, 40 2, 80 15 C120 28, 160 55, 220 50 L220 85 C160 90, 120 63, 80 50 C40 37, 5 45, 5 45 Z" fill="#E6007E"/>
+    <path d="M5 55 C5 55, 40 42, 80 55 C120 68, 160 95, 220 90 L220 125 C160 130, 120 103, 80 90 C40 77, 5 90, 5 90 Z" fill="#009B77"/>
+    <path d="M5 100 C5 100, 40 82, 80 95 C120 108, 160 135, 220 130 L220 160 C160 165, 120 143, 80 130 C40 117, 5 135, 5 135 Z" fill="#0091D2"/>
+  </g>
+  <text x="240" y="38" font-family="sans-serif" font-size="20" font-style="italic" fill="#1a1a1a" letter-spacing="0.12em" font-weight="400">GRUPPO</text>
+  <text x="235" y="132" font-family="sans-serif" font-size="90" font-weight="900" font-style="italic" fill="#1a1a1a" letter-spacing="-0.01em">HERA</text>
 </svg>

@@ -29,7 +29,7 @@ type Screen =
 function HeraLogo({ className }: { className?: string }) {
   return (
     <img
-      src="/brand/hera-logo.svg"
+      src="/brand/hera-logo.webp"
       alt="Gruppo Hera"
       className={className}
       onError={(e) => {
