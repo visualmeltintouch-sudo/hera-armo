@@ -72,7 +72,7 @@ export function EventSelectorDropdown() {
 
   if (events.length === 0) {
     return (
-      <p className="text-sm text-gray-500">
+      <p className="text-sm text-muted-foreground">
         Nessun evento. Creane uno nella sezione Eventi.
       </p>
     );
@@ -82,7 +82,7 @@ export function EventSelectorDropdown() {
     <select
       value={selectedEventId || ""}
       onChange={(e) => setSelectedEventId(e.target.value || null)}
-      className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500"
+      className="bg-muted border border-border rounded-lg px-3 py-2 text-foreground text-sm focus:outline-none focus:border-primary"
     >
       {events.map((ev) => (
         <option key={ev.id} value={ev.id}>

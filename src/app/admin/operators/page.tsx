@@ -105,16 +105,16 @@ export default function OperatorsPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-bold text-white">Operatori</h1>
+        <h1 className="text-xl font-bold text-foreground">Operatori</h1>
         <button
           onClick={openCreate}
-          className="bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+          className="bg-primary hover:bg-primary/90 text-foreground text-sm font-medium px-4 py-2 rounded-lg transition-colors"
         >
           + Nuovo Operatore
         </button>
       </div>
 
-      <div className="bg-gray-900 rounded-xl border border-gray-800">
+      <div className="bg-card rounded-xl border border-border">
         <DataTable
           columns={[
             { key: "name", label: "Nome" },
@@ -122,7 +122,7 @@ export default function OperatorsPage() {
               key: "access_code",
               label: "Codice Accesso",
               render: (op) => (
-                <code className="bg-gray-800 px-2 py-1 rounded text-cyan-400 text-xs">
+                <code className="bg-muted px-2 py-1 rounded text-primary text-xs">
                   {op.access_code}
                 </code>
               ),
@@ -131,7 +131,7 @@ export default function OperatorsPage() {
               key: "event_id",
               label: "Evento",
               render: (op) => {
-                if (!op.event_id) return <span className="text-gray-500">Tutti</span>;
+                if (!op.event_id) return <span className="text-muted-foreground">Tutti</span>;
                 const ev = events.find((e) => e.id === op.event_id);
                 return <span>{ev?.name || "—"}</span>;
               },
@@ -142,7 +142,7 @@ export default function OperatorsPage() {
               render: (op) => (
                 <span
                   className={
-                    op.is_active ? "text-green-400" : "text-gray-500"
+                    op.is_active ? "text-hera-verde" : "text-muted-foreground"
                   }
                 >
                   {op.is_active ? "Attivo" : "Inattivo"}
@@ -187,7 +187,7 @@ export default function OperatorsPage() {
               onClick={() =>
                 setForm({ ...form, access_code: generateAccessCode() })
               }
-              className="text-xs text-cyan-400 hover:text-cyan-300 whitespace-nowrap"
+              className="text-xs text-primary hover:text-primary/80 whitespace-nowrap"
             >
               Genera
             </button>
@@ -216,7 +216,7 @@ export default function OperatorsPage() {
             }
             className="rounded"
           />
-          <span className="text-sm text-gray-300">Attivo</span>
+          <span className="text-sm text-foreground/80">Attivo</span>
         </label>
       </FormModal>
     </div>

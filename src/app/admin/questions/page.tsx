@@ -121,19 +121,19 @@ function QuestionsContent() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
-          <h1 className="text-xl font-bold text-white">Domande</h1>
+          <h1 className="text-xl font-bold text-foreground">Domande</h1>
           <EventSelectorDropdown />
         </div>
         <button
           onClick={openCreate}
           disabled={!selectedEventId}
-          className="bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+          className="bg-primary hover:bg-primary/90 disabled:opacity-50 text-foreground text-sm font-medium px-4 py-2 rounded-lg transition-colors"
         >
           + Nuova Domanda
         </button>
       </div>
 
-      <div className="bg-gray-900 rounded-xl border border-gray-800">
+      <div className="bg-card rounded-xl border border-border">
         <DataTable
           columns={[
             { key: "sort_order", label: "#" },
@@ -144,8 +144,8 @@ function QuestionsContent() {
                 <span
                   className={`text-xs px-2 py-1 rounded-full ${
                     q.age_group === "young"
-                      ? "bg-purple-900/50 text-purple-400"
-                      : "bg-blue-900/50 text-blue-400"
+                      ? "bg-secondary/20 text-secondary"
+                      : "bg-accent/20 text-accent"
                   }`}
                 >
                   {q.age_group === "young" ? "Giovani" : "Classic"}
@@ -168,15 +168,15 @@ function QuestionsContent() {
                 <div className="text-xs space-y-0.5">
                   <div>
                     A:{" "}
-                    <span className="text-green-400">V{q.option_a_verde}</span>{" "}
-                    <span className="text-cyan-400">C{q.option_a_ciano}</span>{" "}
-                    <span className="text-pink-400">M{q.option_a_magenta}</span>
+                    <span className="text-hera-verde">V{q.option_a_verde}</span>{" "}
+                    <span className="text-primary">C{q.option_a_ciano}</span>{" "}
+                    <span className="text-hera-magenta">M{q.option_a_magenta}</span>
                   </div>
                   <div>
                     B:{" "}
-                    <span className="text-green-400">V{q.option_b_verde}</span>{" "}
-                    <span className="text-cyan-400">C{q.option_b_ciano}</span>{" "}
-                    <span className="text-pink-400">M{q.option_b_magenta}</span>
+                    <span className="text-hera-verde">V{q.option_b_verde}</span>{" "}
+                    <span className="text-primary">C{q.option_b_ciano}</span>{" "}
+                    <span className="text-hera-magenta">M{q.option_b_magenta}</span>
                   </div>
                 </div>
               ),
@@ -187,7 +187,7 @@ function QuestionsContent() {
               render: (q) => (
                 <span
                   className={
-                    q.is_active ? "text-green-400" : "text-gray-500"
+                    q.is_active ? "text-hera-verde" : "text-muted-foreground"
                   }
                 >
                   {q.is_active ? "Attiva" : "Inattiva"}
@@ -251,8 +251,8 @@ function QuestionsContent() {
           />
         </Field>
 
-        <div className="border border-gray-700 rounded-lg p-4 space-y-3">
-          <p className="text-sm font-medium text-gray-300">Opzione A</p>
+        <div className="border border-border rounded-lg p-4 space-y-3">
+          <p className="text-sm font-medium text-foreground/80">Opzione A</p>
           <Field label="Testo">
             <input
               className={inputClass}
@@ -270,8 +270,8 @@ function QuestionsContent() {
           </div>
         </div>
 
-        <div className="border border-gray-700 rounded-lg p-4 space-y-3">
-          <p className="text-sm font-medium text-gray-300">Opzione B</p>
+        <div className="border border-border rounded-lg p-4 space-y-3">
+          <p className="text-sm font-medium text-foreground/80">Opzione B</p>
           <Field label="Testo">
             <input
               className={inputClass}
@@ -298,7 +298,7 @@ function QuestionsContent() {
             }
             className="rounded"
           />
-          <span className="text-sm text-gray-300">Attiva</span>
+          <span className="text-sm text-foreground/80">Attiva</span>
         </label>
       </FormModal>
     </div>

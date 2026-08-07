@@ -62,26 +62,26 @@ export default function AdminLayout({
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-        <div className="text-gray-400">Caricamento...</div>
+      <div className="dark min-h-screen bg-background flex items-center justify-center">
+        <div className="text-muted-foreground">Caricamento...</div>
       </div>
     );
   }
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4">
+      <div className="dark min-h-screen bg-background flex items-center justify-center p-4">
         <form
           onSubmit={handleLogin}
-          className="bg-gray-900 rounded-2xl p-8 w-full max-w-sm space-y-6 border border-gray-800"
+          className="bg-card rounded-2xl p-8 w-full max-w-sm space-y-6 border border-border"
         >
           <div className="text-center">
-            <h1 className="text-2xl font-bold text-white">Armocromia</h1>
-            <p className="text-gray-400 text-sm mt-1">Admin Panel</p>
+            <h1 className="text-2xl font-bold text-foreground">Armocromia</h1>
+            <p className="text-muted-foreground text-sm mt-1">Admin Panel</p>
           </div>
 
           {error && (
-            <div className="bg-red-900/30 border border-red-800 text-red-300 text-sm rounded-lg p-3">
+            <div className="bg-destructive/10 border border-destructive/30 text-destructive text-sm rounded-lg p-3">
               {error}
             </div>
           )}
@@ -92,7 +92,7 @@ export default function AdminLayout({
               placeholder="Email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500"
+              className="w-full bg-muted border border-input rounded-lg px-4 py-3 text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary"
               required
             />
             <input
@@ -100,7 +100,7 @@ export default function AdminLayout({
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500"
+              className="w-full bg-muted border border-input rounded-lg px-4 py-3 text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary"
               required
             />
           </div>
@@ -108,7 +108,7 @@ export default function AdminLayout({
           <button
             type="submit"
             disabled={loggingIn}
-            className="w-full bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white font-semibold rounded-lg py-3 transition-colors"
+            className="w-full bg-primary hover:bg-primary/90 disabled:opacity-50 text-primary-foreground font-semibold rounded-lg py-3 transition-colors"
           >
             {loggingIn ? "Accesso..." : "Accedi"}
           </button>
@@ -119,7 +119,7 @@ export default function AdminLayout({
 
   return (
     <AdminContext.Provider value={{ user }}>
-      <div className="min-h-screen bg-gray-950 flex">
+      <div className="dark min-h-screen bg-background flex">
         <Sidebar onLogout={handleLogout} userEmail={user.email || ""} />
         <main className="flex-1 p-6 overflow-auto">{children}</main>
       </div>

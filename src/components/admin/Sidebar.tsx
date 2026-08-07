@@ -23,10 +23,10 @@ export function Sidebar({ onLogout, userEmail }: SidebarProps) {
   const pathname = usePathname();
 
   return (
-    <aside className="w-64 bg-gray-900 border-r border-gray-800 flex flex-col min-h-screen">
-      <div className="p-6 border-b border-gray-800">
-        <h1 className="text-lg font-bold text-white">Armocromia</h1>
-        <p className="text-xs text-gray-500 mt-1">HERA Admin</p>
+    <aside className="w-64 bg-card border-r border-border flex flex-col min-h-screen">
+      <div className="p-6 border-b border-border">
+        <h1 className="text-lg font-bold text-foreground">Armocromia</h1>
+        <p className="text-xs text-muted-foreground mt-1">HERA Admin</p>
       </div>
 
       <nav className="flex-1 p-4 space-y-1">
@@ -38,8 +38,8 @@ export function Sidebar({ onLogout, userEmail }: SidebarProps) {
               href={item.href}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
                 active
-                  ? "bg-cyan-600/20 text-cyan-400"
-                  : "text-gray-400 hover:bg-gray-800 hover:text-white"
+                  ? "bg-primary/20 text-primary"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
               }`}
             >
               <span>{item.icon}</span>
@@ -49,11 +49,11 @@ export function Sidebar({ onLogout, userEmail }: SidebarProps) {
         })}
       </nav>
 
-      <div className="p-4 border-t border-gray-800">
-        <p className="text-xs text-gray-500 truncate mb-3">{userEmail}</p>
+      <div className="p-4 border-t border-border">
+        <p className="text-xs text-muted-foreground truncate mb-3">{userEmail}</p>
         <button
           onClick={onLogout}
-          className="w-full text-sm text-gray-400 hover:text-red-400 transition-colors text-left"
+          className="w-full text-sm text-muted-foreground hover:text-destructive transition-colors text-left"
         >
           Esci
         </button>

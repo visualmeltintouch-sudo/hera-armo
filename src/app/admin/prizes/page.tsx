@@ -118,19 +118,19 @@ function PrizesContent() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
-          <h1 className="text-xl font-bold text-white">Premi</h1>
+          <h1 className="text-xl font-bold text-foreground">Premi</h1>
           <EventSelectorDropdown />
         </div>
         <button
           onClick={openCreate}
           disabled={!selectedEventId}
-          className="bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+          className="bg-primary hover:bg-primary/90 disabled:opacity-50 text-foreground text-sm font-medium px-4 py-2 rounded-lg transition-colors"
         >
           + Nuovo Premio
         </button>
       </div>
 
-      <div className="bg-gray-900 rounded-xl border border-gray-800">
+      <div className="bg-card rounded-xl border border-border">
         <DataTable
           columns={[
             { key: "name", label: "Nome interno" },
@@ -141,19 +141,19 @@ function PrizesContent() {
               label: "Stock",
               render: (p) =>
                 p.stock_total === null ? (
-                  <span className="text-gray-500">Illimitato</span>
+                  <span className="text-muted-foreground">Illimitato</span>
                 ) : (
                   <span>
                     <span
                       className={
                         (p.stock_remaining || 0) === 0
-                          ? "text-red-400"
-                          : "text-green-400"
+                          ? "text-destructive"
+                          : "text-hera-verde"
                       }
                     >
                       {p.stock_remaining}
                     </span>
-                    <span className="text-gray-500">/{p.stock_total}</span>
+                    <span className="text-muted-foreground">/{p.stock_total}</span>
                   </span>
                 ),
             },
@@ -163,7 +163,7 @@ function PrizesContent() {
               render: (p) => (
                 <span
                   className={
-                    p.is_active ? "text-green-400" : "text-gray-500"
+                    p.is_active ? "text-hera-verde" : "text-muted-foreground"
                   }
                 >
                   {p.is_active ? "Attivo" : "Inattivo"}
@@ -178,7 +178,7 @@ function PrizesContent() {
             p.stock_total !== null ? (
               <button
                 onClick={() => handleRestock(p)}
-                className="text-yellow-400 hover:text-yellow-300 text-xs mr-2"
+                className="text-secondary hover:text-secondary/80 text-xs mr-2"
               >
                 Restock
               </button>
@@ -257,7 +257,7 @@ function PrizesContent() {
             }
             className="rounded"
           />
-          <span className="text-sm text-gray-300">Attivo</span>
+          <span className="text-sm text-foreground/80">Attivo</span>
         </label>
       </FormModal>
     </div>

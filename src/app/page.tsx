@@ -212,7 +212,7 @@ export default function TotemPage() {
   const gradient = scoresToGradient(scores);
 
   return (
-    <div className="w-[1080px] h-[1920px] mx-auto relative overflow-hidden bg-gray-950 text-white">
+    <div className="w-[1080px] h-[1920px] mx-auto relative overflow-hidden bg-background text-foreground">
       {/* Gradient background */}
       <div
         className="absolute inset-0 transition-all duration-700 ease-out"
@@ -232,13 +232,13 @@ export default function TotemPage() {
 
       <div className="relative z-10 flex flex-col items-center justify-center h-full p-16">
         {screen === "loading" && (
-          <p className="text-gray-400 text-2xl">Caricamento...</p>
+          <p className="text-muted-foreground text-2xl">Caricamento...</p>
         )}
 
         {screen === "error" && (
           <div className="text-center space-y-8">
-            <p className="text-red-400 text-2xl">{error}</p>
-            <button onClick={handleRestart} className="text-lg text-cyan-400 underline">
+            <p className="text-destructive text-2xl">{error}</p>
+            <button onClick={handleRestart} className="text-lg text-primary underline">
               Riprova
             </button>
           </div>
@@ -261,13 +261,13 @@ export default function TotemPage() {
                   HERAVIGLIOSA
                 </span>
               </h1>
-              <p className="text-2xl text-gray-300 max-w-[700px] mx-auto leading-relaxed">
+              <p className="text-2xl text-foreground/70 max-w-[700px] mx-auto leading-relaxed">
                 Scopri il tuo profilo attraverso le tue scelte quotidiane
               </p>
             </div>
             <button
               onClick={handleStartQuiz}
-              className="text-3xl font-semibold px-16 py-6 rounded-2xl transition-transform hover:scale-105"
+              className="text-3xl font-semibold px-16 py-6 rounded-2xl text-white transition-transform hover:scale-105"
               style={{
                 background: `linear-gradient(135deg, ${HERA_COLORS.verde}, ${HERA_COLORS.ciano}, ${HERA_COLORS.magenta})`,
               }}
@@ -287,7 +287,7 @@ export default function TotemPage() {
                 value={birthYear}
                 onChange={(e) => setBirthYear(e.target.value)}
                 placeholder="es. 1995"
-                className="w-[400px] text-center text-5xl font-bold bg-transparent border-b-4 border-gray-600 focus:border-cyan-400 outline-none py-4 placeholder-gray-700"
+                className="w-[400px] text-center text-5xl font-bold bg-transparent border-b-4 border-border focus:border-primary outline-none py-4 placeholder-muted-foreground"
                 min={1920}
                 max={2010}
               />
@@ -295,7 +295,7 @@ export default function TotemPage() {
                 <button
                   onClick={handleBirthYearSubmit}
                   disabled={!birthYear || parseInt(birthYear) < 1920 || parseInt(birthYear) > 2010}
-                  className="text-2xl font-semibold px-12 py-5 rounded-2xl bg-cyan-600 hover:bg-cyan-500 disabled:opacity-30 transition-all"
+                  className="text-2xl font-semibold px-12 py-5 rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground disabled:opacity-30 transition-all"
                 >
                   CONTINUA
                 </button>
@@ -308,10 +308,10 @@ export default function TotemPage() {
           <div className="w-full flex flex-col items-center space-y-12">
             {/* Progress */}
             <div className="w-full max-w-[900px]">
-              <div className="flex justify-between text-lg text-gray-300 mb-3">
+              <div className="flex justify-between text-lg text-foreground/70 mb-3">
                 <span>Domanda {currentIndex + 1} di {questions.length}</span>
               </div>
-              <div className="w-full bg-gray-800/60 rounded-full h-3 overflow-hidden">
+              <div className="w-full bg-muted/60 rounded-full h-3 overflow-hidden">
                 <div
                   className="h-full rounded-full transition-all duration-500"
                   style={{
@@ -336,7 +336,7 @@ export default function TotemPage() {
                   >
                     {s.value}
                   </div>
-                  <span className="text-xs text-gray-400 mt-1">{s.label}</span>
+                  <span className="text-xs text-muted-foreground mt-1">{s.label}</span>
                 </div>
               ))}
             </div>
@@ -354,17 +354,17 @@ export default function TotemPage() {
                 <button
                   onClick={() => handleAnswer("a")}
                   disabled={animating}
-                  className="w-full text-left text-2xl p-8 rounded-2xl border-2 border-white/20 bg-white/5 hover:bg-white/15 hover:border-white/40 active:scale-[0.98] transition-all duration-200"
+                  className="w-full text-left text-2xl p-8 rounded-2xl border-2 border-foreground/20 bg-foreground/5 hover:bg-foreground/15 hover:border-foreground/40 active:scale-[0.98] transition-all duration-200"
                 >
-                  <span className="font-bold text-cyan-400 mr-4">A</span>
+                  <span className="font-bold text-hera-ciano mr-4">A</span>
                   {questions[currentIndex].option_a_text}
                 </button>
                 <button
                   onClick={() => handleAnswer("b")}
                   disabled={animating}
-                  className="w-full text-left text-2xl p-8 rounded-2xl border-2 border-white/20 bg-white/5 hover:bg-white/15 hover:border-white/40 active:scale-[0.98] transition-all duration-200"
+                  className="w-full text-left text-2xl p-8 rounded-2xl border-2 border-foreground/20 bg-foreground/5 hover:bg-foreground/15 hover:border-foreground/40 active:scale-[0.98] transition-all duration-200"
                 >
-                  <span className="font-bold text-pink-400 mr-4">B</span>
+                  <span className="font-bold text-hera-magenta mr-4">B</span>
                   {questions[currentIndex].option_b_text}
                 </button>
               </div>
@@ -393,11 +393,11 @@ export default function TotemPage() {
               <h2 className="text-5xl font-bold">
                 {profile?.name || result.profile_key.toUpperCase()}
               </h2>
-              <p className="text-3xl text-gray-200 italic max-w-[800px] mx-auto">
+              <p className="text-3xl text-foreground/80 italic max-w-[800px] mx-auto">
                 {profile?.claim || ""}
               </p>
               {profile?.description && (
-                <p className="text-xl text-gray-300 max-w-[700px] mx-auto leading-relaxed mt-4">
+                <p className="text-xl text-foreground/70 max-w-[700px] mx-auto leading-relaxed mt-4">
                   {profile.description}
                 </p>
               )}
@@ -413,7 +413,7 @@ export default function TotemPage() {
                   <div className="text-4xl font-bold" style={{ color: s.color }}>
                     {s.value}
                   </div>
-                  <div className="text-sm text-gray-400">{s.label}</div>
+                  <div className="text-sm text-muted-foreground">{s.label}</div>
                 </div>
               ))}
             </div>
@@ -422,7 +422,7 @@ export default function TotemPage() {
               {postcardUrl && (
                 <button
                   onClick={() => downloadPostcard(postcardUrl)}
-                  className="text-2xl font-semibold px-12 py-5 rounded-2xl transition-transform hover:scale-105"
+                  className="text-2xl font-semibold px-12 py-5 rounded-2xl text-white transition-transform hover:scale-105"
                   style={{
                     background: `linear-gradient(135deg, ${HERA_COLORS.verde}, ${HERA_COLORS.ciano}, ${HERA_COLORS.magenta})`,
                   }}
@@ -434,14 +434,14 @@ export default function TotemPage() {
               {result.code ? (
                 <button
                   onClick={() => setScreen("prize")}
-                  className="block mx-auto text-xl text-cyan-400 underline mt-4"
+                  className="block mx-auto text-xl text-primary underline mt-4"
                 >
                   SCOPRI SE HAI VINTO
                 </button>
               ) : (
                 <button
                   onClick={handleRestart}
-                  className="block mx-auto text-xl text-gray-400 underline mt-4"
+                  className="block mx-auto text-xl text-muted-foreground underline mt-4"
                 >
                   RICOMINCIA
                 </button>
@@ -456,7 +456,7 @@ export default function TotemPage() {
               <>
                 <h2 className="text-6xl font-bold">HAI VINTO!</h2>
                 <div className="space-y-4">
-                  <p className="text-3xl text-gray-200">{result.prize.name}</p>
+                  <p className="text-3xl text-foreground/80">{result.prize.name}</p>
                   {result.prize.image_url && (
                     <img
                       src={result.prize.image_url}
@@ -466,11 +466,11 @@ export default function TotemPage() {
                   )}
                 </div>
                 <div className="space-y-2">
-                  <p className="text-xl text-gray-400">Il tuo codice premio:</p>
-                  <p className="text-6xl font-mono font-bold text-cyan-400 tracking-widest">
+                  <p className="text-xl text-muted-foreground">Il tuo codice premio:</p>
+                  <p className="text-6xl font-mono font-bold text-primary tracking-widest">
                     {result.code}
                   </p>
-                  <p className="text-lg text-gray-500">
+                  <p className="text-lg text-muted-foreground">
                     Mostra questo codice allo stand per ritirare il tuo premio
                   </p>
                 </div>
@@ -478,13 +478,13 @@ export default function TotemPage() {
             ) : (
               <>
                 <h2 className="text-5xl font-bold">Grazie per aver partecipato!</h2>
-                <p className="text-2xl text-gray-300">
+                <p className="text-2xl text-foreground/70">
                   Passa allo stand per ritirare il tuo gadget
                 </p>
               </>
             )}
 
-            <button onClick={handleRestart} className="text-xl text-gray-400 underline">
+            <button onClick={handleRestart} className="text-xl text-muted-foreground underline">
               NUOVA PARTITA
             </button>
           </div>

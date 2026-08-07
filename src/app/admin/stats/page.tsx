@@ -78,13 +78,13 @@ function StatsContent() {
     const pct = max > 0 ? (value / max) * 100 : 0;
     return (
       <div className="flex items-center gap-3">
-        <div className="flex-1 bg-gray-800 rounded-full h-3 overflow-hidden">
+        <div className="flex-1 bg-muted rounded-full h-3 overflow-hidden">
           <div
             className={`h-full rounded-full ${color}`}
             style={{ width: `${pct}%` }}
           />
         </div>
-        <span className="text-sm text-gray-300 w-10 text-right">{value}</span>
+        <span className="text-sm text-foreground/80 w-10 text-right">{value}</span>
       </div>
     );
   }
@@ -92,132 +92,132 @@ function StatsContent() {
   return (
     <div>
       <div className="flex items-center gap-4 mb-6">
-        <h1 className="text-xl font-bold text-white">Statistiche</h1>
+        <h1 className="text-xl font-bold text-foreground">Statistiche</h1>
         <EventSelectorDropdown />
       </div>
 
       <div className="grid grid-cols-4 gap-4 mb-6">
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 text-center">
-          <p className="text-3xl font-bold text-white">{sessions.length}</p>
-          <p className="text-xs text-gray-400">Sessioni</p>
+        <div className="bg-card border border-border rounded-xl p-4 text-center">
+          <p className="text-3xl font-bold text-foreground">{sessions.length}</p>
+          <p className="text-xs text-muted-foreground">Sessioni</p>
         </div>
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 text-center">
-          <p className="text-3xl font-bold text-cyan-400">
+        <div className="bg-card border border-border rounded-xl p-4 text-center">
+          <p className="text-3xl font-bold text-primary">
             {codesCount.total}
           </p>
-          <p className="text-xs text-gray-400">Codici generati</p>
+          <p className="text-xs text-muted-foreground">Codici generati</p>
         </div>
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 text-center">
-          <p className="text-3xl font-bold text-green-400">
+        <div className="bg-card border border-border rounded-xl p-4 text-center">
+          <p className="text-3xl font-bold text-hera-verde">
             {codesCount.redeemed}
           </p>
-          <p className="text-xs text-gray-400">Riscattati</p>
+          <p className="text-xs text-muted-foreground">Riscattati</p>
         </div>
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 text-center">
-          <p className="text-3xl font-bold text-purple-400">
+        <div className="bg-card border border-border rounded-xl p-4 text-center">
+          <p className="text-3xl font-bold text-secondary">
             {ageCounts.young} / {ageCounts.classic}
           </p>
-          <p className="text-xs text-gray-400">Giovani / Classic</p>
+          <p className="text-xs text-muted-foreground">Giovani / Classic</p>
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-6 mb-6">
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-          <h3 className="text-sm font-medium text-gray-400 mb-4">
+        <div className="bg-card border border-border rounded-xl p-5">
+          <h3 className="text-sm font-medium text-muted-foreground mb-4">
             Distribuzione Profili
           </h3>
           <div className="space-y-3">
             <div>
-              <p className="text-xs text-green-400 mb-1">
+              <p className="text-xs text-hera-verde mb-1">
                 Ambiente ({profileCounts.ambiente})
               </p>
-              {bar(profileCounts.ambiente, sessions.length, "bg-green-500")}
+              {bar(profileCounts.ambiente, sessions.length, "bg-hera-verde")}
             </div>
             <div>
-              <p className="text-xs text-cyan-400 mb-1">
+              <p className="text-xs text-primary mb-1">
                 Acqua ({profileCounts.acqua})
               </p>
-              {bar(profileCounts.acqua, sessions.length, "bg-cyan-500")}
+              {bar(profileCounts.acqua, sessions.length, "bg-primary")}
             </div>
             <div>
-              <p className="text-xs text-pink-400 mb-1">
+              <p className="text-xs text-hera-magenta mb-1">
                 Energia ({profileCounts.energia})
               </p>
-              {bar(profileCounts.energia, sessions.length, "bg-pink-500")}
+              {bar(profileCounts.energia, sessions.length, "bg-hera-magenta")}
             </div>
             <div>
-              <p className="text-xs text-purple-400 mb-1">
+              <p className="text-xs text-secondary mb-1">
                 Hera ({profileCounts.hera})
               </p>
-              {bar(profileCounts.hera, sessions.length, "bg-purple-500")}
+              {bar(profileCounts.hera, sessions.length, "bg-secondary")}
             </div>
           </div>
         </div>
 
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-          <h3 className="text-sm font-medium text-gray-400 mb-4">
+        <div className="bg-card border border-border rounded-xl p-5">
+          <h3 className="text-sm font-medium text-muted-foreground mb-4">
             Punteggi Medi
           </h3>
           <div className="space-y-3">
             <div>
-              <p className="text-xs text-green-400 mb-1">
+              <p className="text-xs text-hera-verde mb-1">
                 Verde ({avgScores.verde})
               </p>
-              {bar(avgScores.verde, 30, "bg-green-500")}
+              {bar(avgScores.verde, 30, "bg-hera-verde")}
             </div>
             <div>
-              <p className="text-xs text-cyan-400 mb-1">
+              <p className="text-xs text-primary mb-1">
                 Ciano ({avgScores.ciano})
               </p>
-              {bar(avgScores.ciano, 30, "bg-cyan-500")}
+              {bar(avgScores.ciano, 30, "bg-primary")}
             </div>
             <div>
-              <p className="text-xs text-pink-400 mb-1">
+              <p className="text-xs text-hera-magenta mb-1">
                 Magenta ({avgScores.magenta})
               </p>
-              {bar(avgScores.magenta, 30, "bg-pink-500")}
+              {bar(avgScores.magenta, 30, "bg-hera-magenta")}
             </div>
           </div>
         </div>
       </div>
 
-      <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-        <h3 className="text-sm font-medium text-gray-400 mb-4">
+      <div className="bg-card border border-border rounded-xl p-5">
+        <h3 className="text-sm font-medium text-muted-foreground mb-4">
           Stock Premi
         </h3>
         {prizes.length === 0 ? (
-          <p className="text-gray-500 text-sm">Nessun premio configurato</p>
+          <p className="text-muted-foreground text-sm">Nessun premio configurato</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-800">
-                  <th className="text-left py-2 px-3 text-gray-400">Premio</th>
-                  <th className="text-left py-2 px-3 text-gray-400">Peso</th>
-                  <th className="text-left py-2 px-3 text-gray-400">
+                <tr className="border-b border-border">
+                  <th className="text-left py-2 px-3 text-muted-foreground">Premio</th>
+                  <th className="text-left py-2 px-3 text-muted-foreground">Peso</th>
+                  <th className="text-left py-2 px-3 text-muted-foreground">
                     Rimasti / Totale
                   </th>
-                  <th className="text-left py-2 px-3 text-gray-400">Stato</th>
+                  <th className="text-left py-2 px-3 text-muted-foreground">Stato</th>
                 </tr>
               </thead>
               <tbody>
                 {prizes.map((p) => (
                   <tr
                     key={p.id}
-                    className="border-b border-gray-800/50"
+                    className="border-b border-border/50"
                   >
-                    <td className="py-2 px-3 text-gray-300">{p.label}</td>
-                    <td className="py-2 px-3 text-gray-300">{p.weight}</td>
+                    <td className="py-2 px-3 text-foreground/80">{p.label}</td>
+                    <td className="py-2 px-3 text-foreground/80">{p.weight}</td>
                     <td className="py-2 px-3">
                       {p.stock_total === null ? (
-                        <span className="text-gray-500">Illimitato</span>
+                        <span className="text-muted-foreground">Illimitato</span>
                       ) : (
                         <span>
                           <span
                             className={
                               (p.stock_remaining || 0) === 0
-                                ? "text-red-400"
-                                : "text-green-400"
+                                ? "text-destructive"
+                                : "text-hera-verde"
                             }
                           >
                             {p.stock_remaining}
@@ -229,7 +229,7 @@ function StatsContent() {
                     <td className="py-2 px-3">
                       <span
                         className={
-                          p.is_active ? "text-green-400" : "text-gray-500"
+                          p.is_active ? "text-hera-verde" : "text-muted-foreground"
                         }
                       >
                         {p.is_active ? "Attivo" : "Inattivo"}

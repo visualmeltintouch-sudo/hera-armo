@@ -25,7 +25,7 @@ export function DataTable<T extends { id: string }>({
 }: DataTableProps<T>) {
   if (data.length === 0) {
     return (
-      <div className="text-center py-12 text-gray-500">{emptyMessage}</div>
+      <div className="text-center py-12 text-muted-foreground">{emptyMessage}</div>
     );
   }
 
@@ -33,17 +33,17 @@ export function DataTable<T extends { id: string }>({
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-gray-800">
+          <tr className="border-b border-border">
             {columns.map((col) => (
               <th
                 key={col.key}
-                className="text-left py-3 px-4 text-gray-400 font-medium"
+                className="text-left py-3 px-4 text-muted-foreground font-medium"
               >
                 {col.label}
               </th>
             ))}
             {(onEdit || onDelete || actions) && (
-              <th className="text-right py-3 px-4 text-gray-400 font-medium">
+              <th className="text-right py-3 px-4 text-muted-foreground font-medium">
                 Azioni
               </th>
             )}
@@ -53,10 +53,10 @@ export function DataTable<T extends { id: string }>({
           {data.map((item) => (
             <tr
               key={item.id}
-              className="border-b border-gray-800/50 hover:bg-gray-800/30"
+              className="border-b border-border/50 hover:bg-muted/30"
             >
               {columns.map((col) => (
-                <td key={col.key} className="py-3 px-4 text-gray-300">
+                <td key={col.key} className="py-3 px-4 text-foreground/80">
                   {col.render
                     ? col.render(item)
                     : String((item as Record<string, unknown>)[col.key] ?? "")}
@@ -68,7 +68,7 @@ export function DataTable<T extends { id: string }>({
                   {onEdit && (
                     <button
                       onClick={() => onEdit(item)}
-                      className="text-cyan-400 hover:text-cyan-300 text-xs"
+                      className="text-primary hover:text-primary/80 text-xs"
                     >
                       Modifica
                     </button>
@@ -76,7 +76,7 @@ export function DataTable<T extends { id: string }>({
                   {onDelete && (
                     <button
                       onClick={() => onDelete(item)}
-                      className="text-red-400 hover:text-red-300 text-xs"
+                      className="text-destructive hover:text-destructive/80 text-xs"
                     >
                       Elimina
                     </button>

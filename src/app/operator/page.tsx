@@ -48,27 +48,27 @@ export default function OperatorPage() {
 
   if (!loggedIn) {
     return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4">
+      <div className="dark min-h-screen bg-background flex items-center justify-center p-4">
         <form
           onSubmit={handleLogin}
-          className="bg-gray-900 rounded-2xl p-8 w-full max-w-sm space-y-6 border border-gray-800"
+          className="bg-card rounded-2xl p-8 w-full max-w-sm space-y-6 border border-border"
         >
           <div className="text-center">
-            <h1 className="text-2xl font-bold text-white">Armocromia</h1>
-            <p className="text-gray-400 text-sm mt-1">Accesso Operatore</p>
+            <h1 className="text-2xl font-bold text-foreground">Armocromia</h1>
+            <p className="text-muted-foreground text-sm mt-1">Accesso Operatore</p>
           </div>
           <input
             type="text"
             placeholder="Codice Accesso"
             value={accessCode}
             onChange={(e) => setAccessCode(e.target.value.toUpperCase())}
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white text-center text-xl tracking-widest placeholder-gray-500 focus:outline-none focus:border-cyan-500"
+            className="w-full bg-muted border border-input rounded-lg px-4 py-3 text-foreground text-center text-xl tracking-widest placeholder-muted-foreground focus:outline-none focus:border-primary"
             autoFocus
             required
           />
           <button
             type="submit"
-            className="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-semibold rounded-lg py-3 transition-colors"
+            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-lg py-3 transition-colors"
           >
             Accedi
           </button>
@@ -78,11 +78,11 @@ export default function OperatorPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4">
+    <div className="dark min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md space-y-6">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-white">Verifica Codice</h1>
-          <p className="text-gray-400 text-sm mt-1">
+          <h1 className="text-2xl font-bold text-foreground">Verifica Codice</h1>
+          <p className="text-muted-foreground text-sm mt-1">
             Inserisci il codice premio del partecipante
           </p>
         </div>
@@ -93,14 +93,14 @@ export default function OperatorPage() {
             placeholder="Es. A1234"
             value={prizeCode}
             onChange={(e) => setPrizeCode(e.target.value.toUpperCase())}
-            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-4 text-white text-center text-3xl tracking-widest placeholder-gray-600 focus:outline-none focus:border-cyan-500"
+            className="w-full bg-card border border-input rounded-lg px-4 py-4 text-foreground text-center text-3xl tracking-widest placeholder-muted-foreground focus:outline-none focus:border-primary"
             autoFocus
             required
           />
           <button
             type="submit"
             disabled={loading || !prizeCode.trim()}
-            className="w-full bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white font-semibold rounded-lg py-3 transition-colors"
+            className="w-full bg-primary hover:bg-primary/90 disabled:opacity-50 text-primary-foreground font-semibold rounded-lg py-3 transition-colors"
           >
             {loading ? "Verifica..." : "Verifica Codice"}
           </button>
@@ -110,27 +110,27 @@ export default function OperatorPage() {
           <div
             className={`rounded-xl p-6 border ${
               result.success
-                ? "bg-green-900/30 border-green-700"
-                : "bg-red-900/30 border-red-700"
+                ? "bg-hera-verde/10 border-hera-verde/30"
+                : "bg-destructive/10 border-destructive/30"
             }`}
           >
             {result.success ? (
               <div className="text-center space-y-2">
-                <p className="text-green-400 text-xl font-bold">
+                <p className="text-hera-verde text-xl font-bold">
                   CODICE VALIDO
                 </p>
-                <p className="text-white text-lg">{result.prize}</p>
-                <p className="text-gray-400 text-sm">{result.event}</p>
+                <p className="text-foreground text-lg">{result.prize}</p>
+                <p className="text-muted-foreground text-sm">{result.event}</p>
               </div>
             ) : (
               <div className="text-center space-y-2">
-                <p className="text-red-400 text-xl font-bold">ERRORE</p>
-                <p className="text-gray-300">{result.error}</p>
+                <p className="text-destructive text-xl font-bold">ERRORE</p>
+                <p className="text-foreground/80">{result.error}</p>
               </div>
             )}
             <button
               onClick={handleReset}
-              className="w-full mt-4 text-sm text-gray-400 hover:text-white transition-colors"
+              className="w-full mt-4 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               Verifica un altro codice
             </button>
@@ -144,7 +144,7 @@ export default function OperatorPage() {
             setPrizeCode("");
             setResult(null);
           }}
-          className="w-full text-sm text-gray-500 hover:text-red-400 transition-colors"
+          className="w-full text-sm text-muted-foreground hover:text-destructive transition-colors"
         >
           Disconnetti
         </button>

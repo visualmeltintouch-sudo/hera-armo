@@ -72,11 +72,11 @@ function SettingsContent() {
   return (
     <div>
       <div className="flex items-center gap-4 mb-6">
-        <h1 className="text-xl font-bold text-white">Impostazioni</h1>
+        <h1 className="text-xl font-bold text-foreground">Impostazioni</h1>
         <EventSelectorDropdown />
       </div>
 
-      <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 max-w-lg space-y-6">
+      <div className="bg-card border border-border rounded-xl p-6 max-w-lg space-y-6">
         <Field label="Anno di nascita soglia (giovani = da questo anno in poi)">
           <input
             type="number"
@@ -89,7 +89,7 @@ function SettingsContent() {
               })
             }
           />
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-xs text-muted-foreground mt-1">
             Nati dal {form.year_cutoff} in poi → domande giovani. Prima del{" "}
             {form.year_cutoff} → domande classic.
           </p>
@@ -108,7 +108,7 @@ function SettingsContent() {
               })
             }
           />
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-xs text-muted-foreground mt-1">
             Se la differenza tra il punteggio massimo e minimo delle 3
             categorie è ≤ {form.hera_threshold}, viene assegnato il profilo
             Hera (gradiente completo).
@@ -135,12 +135,12 @@ function SettingsContent() {
           <button
             onClick={handleSave}
             disabled={saving}
-            className="bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white text-sm font-medium px-6 py-2 rounded-lg transition-colors"
+            className="bg-primary hover:bg-primary/90 disabled:opacity-50 text-foreground text-sm font-medium px-6 py-2 rounded-lg transition-colors"
           >
             {saving ? "Salvataggio..." : "Salva"}
           </button>
           {saved && (
-            <span className="text-green-400 text-sm">Salvato!</span>
+            <span className="text-hera-verde text-sm">Salvato!</span>
           )}
         </div>
       </div>

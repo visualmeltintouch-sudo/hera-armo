@@ -17,10 +17,10 @@ import type { ArmoProfile, ProfileKey, AgeGroup } from "@/lib/types";
 
 const PROFILE_KEYS: ProfileKey[] = ["ambiente", "acqua", "energia", "hera"];
 const PROFILE_COLORS: Record<ProfileKey, string> = {
-  ambiente: "border-green-500 bg-green-900/20",
-  acqua: "border-cyan-500 bg-cyan-900/20",
-  energia: "border-pink-500 bg-pink-900/20",
-  hera: "border-purple-500 bg-purple-900/20",
+  ambiente: "border-hera-verde bg-hera-verde/20",
+  acqua: "border-primary bg-primary/20",
+  energia: "border-hera-magenta bg-hera-magenta/20",
+  hera: "border-secondary bg-secondary/20",
 };
 const PROFILE_LABELS: Record<ProfileKey, string> = {
   ambiente: "Ambiente (Verde)",
@@ -132,14 +132,14 @@ function ProfilesContent() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
-          <h1 className="text-xl font-bold text-white">Profili</h1>
+          <h1 className="text-xl font-bold text-foreground">Profili</h1>
           <EventSelectorDropdown />
         </div>
         <div className="flex gap-2">
           {profiles.length === 0 && selectedEventId && (
             <button
               onClick={seedProfiles}
-              className="bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+              className="bg-secondary hover:bg-secondary/90 text-foreground text-sm font-medium px-4 py-2 rounded-lg transition-colors"
             >
               Crea Predefiniti
             </button>
@@ -147,7 +147,7 @@ function ProfilesContent() {
           <button
             onClick={openCreate}
             disabled={!selectedEventId}
-            className="bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+            className="bg-primary hover:bg-primary/90 disabled:opacity-50 text-foreground text-sm font-medium px-4 py-2 rounded-lg transition-colors"
           >
             + Nuovo Profilo
           </button>
@@ -162,42 +162,42 @@ function ProfilesContent() {
               key={key}
               className={`border rounded-xl p-5 ${PROFILE_COLORS[key]}`}
             >
-              <h3 className="text-white font-semibold mb-3">
+              <h3 className="text-foreground font-semibold mb-3">
                 {PROFILE_LABELS[key]}
               </h3>
               {group.length === 0 ? (
-                <p className="text-gray-500 text-sm">Non configurato</p>
+                <p className="text-muted-foreground text-sm">Non configurato</p>
               ) : (
                 <div className="space-y-3">
                   {group.map((p) => (
                     <div
                       key={p.id}
-                      className="bg-gray-900/50 rounded-lg p-3 space-y-1"
+                      className="bg-card/50 rounded-lg p-3 space-y-1"
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-xs text-gray-400">
+                        <span className="text-xs text-muted-foreground">
                           {p.age_group === "young" ? "Giovani" : "Classic"}
                         </span>
                         <div className="space-x-2">
                           <button
                             onClick={() => openEdit(p)}
-                            className="text-cyan-400 hover:text-cyan-300 text-xs"
+                            className="text-primary hover:text-primary/80 text-xs"
                           >
                             Modifica
                           </button>
                           <button
                             onClick={() => handleDelete(p.id)}
-                            className="text-red-400 hover:text-red-300 text-xs"
+                            className="text-destructive hover:text-destructive text-xs"
                           >
                             Elimina
                           </button>
                         </div>
                       </div>
-                      <p className="text-white font-medium">{p.name}</p>
-                      <p className="text-gray-300 text-sm italic">
+                      <p className="text-foreground font-medium">{p.name}</p>
+                      <p className="text-foreground/80 text-sm italic">
                         {p.claim}
                       </p>
-                      <p className="text-gray-400 text-xs">{p.description}</p>
+                      <p className="text-muted-foreground text-xs">{p.description}</p>
                     </div>
                   ))}
                 </div>

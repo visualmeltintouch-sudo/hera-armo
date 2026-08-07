@@ -178,16 +178,16 @@ export default function EventsPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-bold text-white">Eventi</h1>
+        <h1 className="text-xl font-bold text-foreground">Eventi</h1>
         <button
           onClick={openCreate}
-          className="bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+          className="bg-primary hover:bg-primary/90 text-foreground text-sm font-medium px-4 py-2 rounded-lg transition-colors"
         >
           + Nuovo Evento
         </button>
       </div>
 
-      <div className="bg-gray-900 rounded-xl border border-gray-800">
+      <div className="bg-card rounded-xl border border-border">
         <DataTable
           columns={[
             { key: "name", label: "Nome" },
@@ -202,8 +202,8 @@ export default function EventsPage() {
                   onClick={() => toggleActive(e)}
                   className={`text-xs px-2 py-1 rounded-full ${
                     e.is_active
-                      ? "bg-green-900/50 text-green-400"
-                      : "bg-gray-800 text-gray-500"
+                      ? "bg-hera-verde/20 text-hera-verde"
+                      : "bg-muted text-muted-foreground"
                   }`}
                 >
                   {e.is_active ? "Attivo" : "Inattivo"}
@@ -218,7 +218,7 @@ export default function EventsPage() {
           actions={(e) => (
             <button
               onClick={() => handleDuplicate(e)}
-              className="text-yellow-400 hover:text-yellow-300 text-xs mr-2"
+              className="text-secondary hover:text-secondary/80 text-xs mr-2"
             >
               Duplica
             </button>
@@ -295,7 +295,7 @@ export default function EventsPage() {
                 }
                 className="rounded"
               />
-              <span className="text-sm text-gray-300">Attivo</span>
+              <span className="text-sm text-foreground/80">Attivo</span>
             </label>
           </Field>
         </div>

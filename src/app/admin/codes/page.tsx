@@ -41,9 +41,9 @@ function CodesContent() {
   }, [selectedEventId]);
 
   const statusColors: Record<string, string> = {
-    generated: "bg-yellow-900/50 text-yellow-400",
-    redeemed: "bg-green-900/50 text-green-400",
-    expired: "bg-red-900/50 text-red-400",
+    generated: "bg-secondary/20 text-secondary",
+    redeemed: "bg-hera-verde/20 text-hera-verde",
+    expired: "bg-destructive/20 text-destructive",
   };
   const statusLabels: Record<string, string> = {
     generated: "In attesa",
@@ -55,34 +55,34 @@ function CodesContent() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
-          <h1 className="text-xl font-bold text-white">Codici</h1>
+          <h1 className="text-xl font-bold text-foreground">Codici</h1>
           <EventSelectorDropdown />
         </div>
       </div>
 
       <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 text-center">
-          <p className="text-2xl font-bold text-white">{stats.total}</p>
-          <p className="text-xs text-gray-400">Totali</p>
+        <div className="bg-card border border-border rounded-xl p-4 text-center">
+          <p className="text-2xl font-bold text-foreground">{stats.total}</p>
+          <p className="text-xs text-muted-foreground">Totali</p>
         </div>
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 text-center">
-          <p className="text-2xl font-bold text-yellow-400">{stats.pending}</p>
-          <p className="text-xs text-gray-400">In attesa</p>
+        <div className="bg-card border border-border rounded-xl p-4 text-center">
+          <p className="text-2xl font-bold text-secondary">{stats.pending}</p>
+          <p className="text-xs text-muted-foreground">In attesa</p>
         </div>
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 text-center">
-          <p className="text-2xl font-bold text-green-400">{stats.redeemed}</p>
-          <p className="text-xs text-gray-400">Riscattati</p>
+        <div className="bg-card border border-border rounded-xl p-4 text-center">
+          <p className="text-2xl font-bold text-hera-verde">{stats.redeemed}</p>
+          <p className="text-xs text-muted-foreground">Riscattati</p>
         </div>
       </div>
 
-      <div className="bg-gray-900 rounded-xl border border-gray-800">
+      <div className="bg-card rounded-xl border border-border">
         <DataTable
           columns={[
             {
               key: "code",
               label: "Codice",
               render: (c) => (
-                <code className="bg-gray-800 px-2 py-1 rounded text-cyan-400 text-xs">
+                <code className="bg-muted px-2 py-1 rounded text-primary text-xs">
                   {c.code}
                 </code>
               ),
