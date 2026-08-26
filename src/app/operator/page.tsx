@@ -33,6 +33,12 @@ export default function OperatorPage() {
     const code = accessCode.trim().toUpperCase();
     if (code.length < 4) return;
 
+    if (process.env.NEXT_PUBLIC_DEV_BYPASS === "true") {
+      setOperatorName("Dev Operator");
+      setLoggedIn(true);
+      return;
+    }
+
     const { data, error } = await supabase
       .from("hera_armo_operators")
       .select("name, is_active")

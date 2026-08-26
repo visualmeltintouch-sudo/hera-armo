@@ -32,6 +32,11 @@ export default function AdminLayout({
   const supabase = createClient();
 
   useEffect(() => {
+    if (process.env.NEXT_PUBLIC_DEV_BYPASS === "true") {
+      setUser({ id: "dev", email: "dev@local" } as User);
+      setLoading(false);
+      return;
+    }
     supabase.auth.getUser().then(({ data }) => {
       setUser(data.user);
       setLoading(false);
