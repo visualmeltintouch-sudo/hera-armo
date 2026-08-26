@@ -67,7 +67,7 @@ export default function AdminLayout({
 
   if (loading) {
     return (
-      <div className="dark min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-muted-foreground">Caricamento...</div>
       </div>
     );
@@ -75,10 +75,10 @@ export default function AdminLayout({
 
   if (!user) {
     return (
-      <div className="dark min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="min-h-screen bg-muted flex items-center justify-center p-4">
         <form
           onSubmit={handleLogin}
-          className="bg-card rounded-2xl p-8 w-full max-w-sm space-y-6 border border-border"
+          className="bg-card rounded-2xl p-8 w-full max-w-sm space-y-6 border border-border shadow-lg"
         >
           <div className="text-center">
             <h1 className="text-2xl font-bold text-foreground">Armocromia</h1>
@@ -124,7 +124,7 @@ export default function AdminLayout({
 
   return (
     <AdminContext.Provider value={{ user }}>
-      <div className="dark min-h-screen bg-background flex">
+      <div className="min-h-screen bg-muted flex">
         <Sidebar onLogout={handleLogout} userEmail={user.email || ""} />
         <main className="flex-1 p-6 overflow-auto">{children}</main>
       </div>

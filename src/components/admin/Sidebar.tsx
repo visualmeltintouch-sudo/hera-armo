@@ -23,7 +23,7 @@ export function Sidebar({ onLogout, userEmail }: SidebarProps) {
   const pathname = usePathname();
 
   return (
-    <aside className="w-64 bg-card border-r border-border flex flex-col min-h-screen">
+    <aside className="w-64 bg-background border-r border-border flex flex-col min-h-screen shadow-sm">
       <div className="p-6 border-b border-border space-y-3">
         <img src="/brand/hera-logo.webp" alt="Gruppo Hera" className="h-8 w-auto" />
         <div>

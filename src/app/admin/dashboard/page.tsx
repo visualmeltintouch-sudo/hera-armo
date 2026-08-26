@@ -35,7 +35,7 @@ const PROFILE_COLORS: Record<ProfileKey, string> = {
 
 function StatCard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
   return (
-    <div className="bg-card border border-border rounded-xl p-5 space-y-1">
+    <div className="bg-background border border-border rounded-xl p-5 space-y-1 shadow-sm">
       <p className="text-xs text-muted-foreground uppercase tracking-wider">{label}</p>
       <p className="text-3xl font-bold text-foreground">{value}</p>
       {sub && <p className="text-xs text-muted-foreground">{sub}</p>}
@@ -221,7 +221,7 @@ function DashboardContent() {
           {/* Profiles + Age split */}
           <div className="grid grid-cols-3 gap-4">
             {/* Profile distribution */}
-            <div className="col-span-2 bg-card border border-border rounded-xl p-5 space-y-4">
+            <div className="col-span-2 bg-background border border-border rounded-xl p-5 space-y-4 shadow-sm">
               <h2 className="text-sm font-semibold text-foreground">Distribuzione Profili</h2>
               <div className="space-y-4">
                 {stats.topProfiles.map(({ profile_key, count }) => (
@@ -237,7 +237,7 @@ function DashboardContent() {
 
             {/* Age group + Score avg */}
             <div className="space-y-4">
-              <div className="bg-card border border-border rounded-xl p-5 space-y-4">
+              <div className="bg-background border border-border rounded-xl p-5 space-y-4 shadow-sm">
                 <h2 className="text-sm font-semibold text-foreground">Fascia d'età</h2>
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
@@ -251,7 +251,7 @@ function DashboardContent() {
                 </div>
               </div>
 
-              <div className="bg-card border border-border rounded-xl p-5 space-y-4">
+              <div className="bg-background border border-border rounded-xl p-5 space-y-4 shadow-sm">
                 <h2 className="text-sm font-semibold text-foreground">Score Medio</h2>
                 <div className="space-y-2">
                   {[
@@ -272,7 +272,7 @@ function DashboardContent() {
           {/* Prizes + Recent */}
           <div className="grid grid-cols-2 gap-4">
             {/* Prize stock */}
-            <div className="bg-card border border-border rounded-xl p-5 space-y-4">
+            <div className="bg-background border border-border rounded-xl p-5 space-y-4 shadow-sm">
               <h2 className="text-sm font-semibold text-foreground">Stock Premi</h2>
               {stats.prizeStats.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Nessun premio configurato</p>
@@ -294,7 +294,7 @@ function DashboardContent() {
             </div>
 
             {/* Recent sessions */}
-            <div className="bg-card border border-border rounded-xl p-5 space-y-4">
+            <div className="bg-background border border-border rounded-xl p-5 space-y-4 shadow-sm">
               <h2 className="text-sm font-semibold text-foreground">Ultime 10 Partecipazioni</h2>
               {stats.recentSessions.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Nessuna partecipazione</p>
