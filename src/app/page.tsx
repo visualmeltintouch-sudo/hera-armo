@@ -330,28 +330,28 @@ export default function TotemPage() {
                 {questions[currentIndex].question_text}
               </h2>
 
-              <div className="grid grid-cols-2 gap-6">
+              <div className="flex flex-col gap-5">
                 <button
                   onClick={() => handleAnswer("a")}
                   disabled={animating}
-                  className="flex flex-col items-center gap-5 text-center p-10 rounded-3xl border-2 border-border bg-card hover:border-primary hover:shadow-xl active:scale-[0.97] transition-all duration-200"
+                  className="flex items-center gap-8 text-left px-10 py-8 rounded-3xl border-2 border-border bg-card hover:border-primary hover:shadow-xl active:scale-[0.98] transition-all duration-200"
                 >
-                  <span className="text-6xl" aria-hidden>
+                  <span className="text-5xl shrink-0" aria-hidden>
                     {questions[currentIndex].option_a_icon}
                   </span>
-                  <span className="text-xl font-medium leading-snug text-foreground">
+                  <span className="text-2xl font-medium leading-snug text-foreground">
                     {questions[currentIndex].option_a_text}
                   </span>
                 </button>
                 <button
                   onClick={() => handleAnswer("b")}
                   disabled={animating}
-                  className="flex flex-col items-center gap-5 text-center p-10 rounded-3xl border-2 border-border bg-card hover:border-primary hover:shadow-xl active:scale-[0.97] transition-all duration-200"
+                  className="flex items-center gap-8 text-left px-10 py-8 rounded-3xl border-2 border-border bg-card hover:border-primary hover:shadow-xl active:scale-[0.98] transition-all duration-200"
                 >
-                  <span className="text-6xl" aria-hidden>
+                  <span className="text-5xl shrink-0" aria-hidden>
                     {questions[currentIndex].option_b_icon}
                   </span>
-                  <span className="text-xl font-medium leading-snug text-foreground">
+                  <span className="text-2xl font-medium leading-snug text-foreground">
                     {questions[currentIndex].option_b_text}
                   </span>
                 </button>

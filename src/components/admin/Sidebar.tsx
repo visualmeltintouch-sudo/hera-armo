@@ -4,13 +4,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const NAV_ITEMS = [
+  { href: "/admin/dashboard", label: "Dashboard", icon: "📊" },
   { href: "/admin/events", label: "Eventi", icon: "📅" },
   { href: "/admin/questions", label: "Domande", icon: "❓" },
   { href: "/admin/profiles", label: "Profili", icon: "🎨" },
   { href: "/admin/prizes", label: "Premi", icon: "🎁" },
   { href: "/admin/operators", label: "Operatori", icon: "👤" },
   { href: "/admin/codes", label: "Codici", icon: "🔑" },
-  { href: "/admin/stats", label: "Statistiche", icon: "📊" },
   { href: "/admin/settings", label: "Impostazioni", icon: "⚙️" },
 ];
 
