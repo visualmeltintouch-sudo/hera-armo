@@ -23,15 +23,21 @@
 ## ⏳ In Attesa / Da Completare
 
 ### Operatore Terminal
-- [ ] Pagina operatore (/operator) per verifica codici premio
-- [ ] Login operatore con access_code
-- [ ] UI redeem codice (input + verifica + feedback)
-- [ ] Integrazione RPC hera_armo_redeem()
+- [x] Pagina operatore (/operator) per verifica codici premio
+- [x] Login operatore con access_code (verifica DB su hera_armo_operators)
+- [x] UI redeem codice (input + verifica + feedback verde/rosso)
+- [x] Integrazione RPC hera_armo_redeem()
 
 ### Analytics & Admin Stats
-- [ ] Dashboard statistiche quiz (risposte per domanda, profili più frequenti, etc.)
-- [ ] Pagina codici admin (lista, status, esport CSV)
-- [ ] Live player tracking (sessioni attive, play-per-ora, etc.)
+- [x] Dashboard statistiche (/admin/dashboard) con KPI, profili, premi
+- [ ] Pagina codici admin (lista, status, export CSV)
+- [ ] Live player tracking (sessioni attive, play-per-ora real-time)
+
+### Quiz UX
+- [x] Tutte le domande visibili su pagina unica scrollabile (anziché una alla volta)
+- [x] Schermata risultato: gradiente come anello attorno alla foto persona
+- [x] Placeholder persona (silhouette SVG)
+- [ ] **Selfie + rimozione sfondo** — il partecipante scatta una foto con la webcam, lo sfondo viene rimosso (es. remove.bg API o ML locale), e la foto viene mostrata nell'anello gradiente al posto del placeholder. Richiede: input webcam (getUserMedia), rimozione sfondo, compositing sull'immagine finale.
 
 ### Testing & QA
 - [ ] Test end-to-end (full quiz flow in headless browser)
@@ -95,5 +101,5 @@
 
 ---
 
-**Ultimo update**: 2026-08-07
-**Stato**: Beta live, feature-complete
+**Ultimo update**: 2026-08-26
+**Stato**: Beta live — quiz scrollabile, risultato con gradiente ring, operator e dashboard pronti
