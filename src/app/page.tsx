@@ -498,6 +498,20 @@ export default function TotemPage() {
                 </div>
               )}
 
+              {/* Suggerimenti codici test — ⚠️ rimuovere prima del go-live */}
+              <div className="flex gap-3 justify-center flex-wrap">
+                {[{ code: "YOUNG", label: "Young (1982+)" }, { code: "BOOMER", label: "Classic (<1982)" }].map(({ code, label }) => (
+                  <button
+                    key={code}
+                    type="button"
+                    onClick={() => { setAccessCode(code); setCodeError(""); }}
+                    className="text-sm px-4 py-2 rounded-full border border-dashed border-muted-foreground/40 text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+                  >
+                    {code} <span className="opacity-60">— {label}</span>
+                  </button>
+                ))}
+              </div>
+
               <button
                 onClick={handleCodeSubmit}
                 disabled={codeLoading || accessCode.trim().length < 5}
