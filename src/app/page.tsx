@@ -28,7 +28,7 @@ type Screen =
   | "prize"
   | "error";
 
-type SelfieStep = "idle" | "capturing" | "processing" | "preview";
+type SelfieStep = "idle" | "capturing" | "preview";
 
 function HeraLogo({ className }: { className?: string }) {
   return (
@@ -228,7 +228,7 @@ export default function TotemPage() {
     const offsetY = (video.videoHeight - srcSize) / 2;
     ctx.drawImage(video, offsetX, offsetY, srcSize, srcSize, 0, 0, outSize, outSize);
     stopCamera();
-    await processImage(canvas.toDataURL("image/jpeg", 0.85));
+    showRawPreview(canvas.toDataURL("image/jpeg", 0.85));
   }
 
   async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -248,18 +248,21 @@ export default function TotemPage() {
       const offsetY = (img.naturalHeight - Math.min(img.naturalWidth, img.naturalHeight)) / 2;
       const srcSize = Math.min(img.naturalWidth, img.naturalHeight);
       ctx.drawImage(img, offsetX, offsetY, srcSize, srcSize, 0, 0, size, size);
-      await processImage(canvas.toDataURL("image/jpeg", 0.85));
+      showRawPreview(canvas.toDataURL("image/jpeg", 0.85));
     };
     img.src = objectUrl;
   }
 
-  async function processImage(sourceDataUrl: string) {
-    setSelfieStep("processing");
-    setSelfieError("");
+  // Mostra subito l'anteprima raw — nessuna attesa per l'utente
+  function showRawPreview(sourceDataUrl: string) {
+    setSelfieDataUrl(sourceDataUrl); // anteprima temporanea raw
+    setSelfieStep("preview");
+  }
+
+  // Gira in background mentre l'utente fa il quiz
+  async function processInBackground(sourceDataUrl: string) {
     try {
       const { removeBackground } = await import("@imgly/background-removal");
-
-      // Convert data URL to blob
       const res = await fetch(sourceDataUrl);
       const blob = await res.blob();
 
@@ -268,11 +271,10 @@ export default function TotemPage() {
         output: { format: "image/png", quality: 0.6 },
       });
 
-      // Convert result to data URL for preview
       const outputUrl = URL.createObjectURL(resultBlob);
-      setSelfieDataUrl(outputUrl);
+      setSelfieDataUrl(outputUrl); // sostituisce il raw con la versione senza sfondo
 
-      // Upload to Supabase Storage
+      // Upload su Supabase Storage
       if (event) {
         const filename = `${event.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.png`;
         const { data: uploadData } = await supabase.storage
@@ -285,12 +287,9 @@ export default function TotemPage() {
           setSelfieStorageUrl(urlData.publicUrl);
         }
       }
-
-      setSelfieStep("preview");
     } catch (err) {
-      console.error("Background removal error:", err);
-      setSelfieError("Errore nell'elaborazione della foto. Riprova.");
-      setSelfieStep("idle");
+      console.error("Background removal error (background):", err);
+      // Non mostriamo errore all'utente — al risultato resta la foto raw
     }
   }
 
@@ -303,6 +302,8 @@ export default function TotemPage() {
 
   function confirmSelfie() {
     stopCamera();
+    // Lancia la rimozione sfondo in background — l'utente fa il quiz nel frattempo
+    if (selfieDataUrl) processInBackground(selfieDataUrl);
     setScreen("quiz");
   }
 
@@ -604,19 +605,11 @@ export default function TotemPage() {
               </>
             )}
 
-            {selfieStep === "processing" && (
-              <div className="space-y-8 flex flex-col items-center">
-                <div className="w-32 h-32 rounded-full border-4 border-muted border-t-primary animate-spin" />
-                <p className="text-3xl font-bold text-foreground">Elaborazione foto in corso...</p>
-                <p className="text-xl text-muted-foreground">Stiamo rimuovendo lo sfondo</p>
-              </div>
-            )}
-
-            {selfieStep === "preview" && selfieDataUrl && (
+{selfieStep === "preview" && selfieDataUrl && (
               <>
                 <div className="space-y-3">
-                  <h2 className="text-5xl font-bold text-foreground">Perfetta!</h2>
-                  <p className="text-xl text-muted-foreground">Ecco come apparirà nel tuo gradiente</p>
+                  <h2 className="text-5xl font-bold text-foreground">Ti piace?</h2>
+                  <p className="text-xl text-muted-foreground">Se sei soddisfatto/a, procedi al quiz</p>
                 </div>
                 {/* Preview composita: selfie dentro anello */}
                 <div className="relative mx-auto flex items-center justify-center" style={{ width: 340, height: 340 }}>
