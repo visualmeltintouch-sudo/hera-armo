@@ -44,7 +44,9 @@
 - [x] Tutte le domande visibili su pagina unica scrollabile (anziché una alla volta)
 - [x] Schermata risultato: gradiente come anello attorno alla foto persona
 - [x] Placeholder persona (silhouette SVG)
-- [ ] **Selfie + rimozione sfondo** — il partecipante scatta una foto con la webcam, lo sfondo viene rimosso (es. remove.bg API o ML locale), e la foto viene mostrata nell'anello gradiente al posto del placeholder. Richiede: input webcam (getUserMedia), rimozione sfondo, compositing sull'immagine finale.
+- [x] **Selfie + rimozione sfondo** — webcam (getUserMedia) + fallback upload manuale; rimozione sfondo client-side ML (`@imgly/background-removal`); compositing nell'anello gradiente; foto salvata su Supabase Storage bucket `armo-selfies-test`.
+- [ ] **Storage selfie — regole definitive** — retention policy, separazione bucket per evento, accesso admin, auto-delete post-download. Bloccato su risposta cliente (TO ASK #8).
+- [ ] **TODO: L'URL nel QR code del totem punta a `/register`. Sostituire con URL landing reale quando disponibile.** (TO ASK #7)
 
 ### Testing & QA
 - [ ] Test end-to-end (full quiz flow in headless browser)

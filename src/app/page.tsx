@@ -21,11 +21,14 @@ type Screen =
   | "loading"
   | "intro"
   | "code_entry"
+  | "selfie"
   | "quiz"
   | "calculating"
   | "result"
   | "prize"
   | "error";
+
+type SelfieStep = "idle" | "capturing" | "processing" | "preview";
 
 function HeraLogo({ className }: { className?: string }) {
   return (
@@ -70,6 +73,16 @@ export default function TotemPage() {
   const [profile, setProfile] = useState<ArmoProfile | null>(null);
   const [finalScores, setFinalScores] = useState<ColorScores>({ verde: 0, ciano: 0, magenta: 0 });
   const [postcardUrl, setPostcardUrl] = useState<string | null>(null);
+
+  // Selfie
+  const [selfieStep, setSelfieStep] = useState<SelfieStep>("idle");
+  const [selfieDataUrl, setSelfieDataUrl] = useState<string | null>(null); // bg-removed PNG (data URL)
+  const [selfieStorageUrl, setSelfieStorageUrl] = useState<string | null>(null); // uploaded URL
+  const [selfieError, setSelfieError] = useState("");
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const captureCanvasRef = useRef<HTMLCanvasElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
   useEffect(() => { loadEvent(); }, []);
 
@@ -168,8 +181,127 @@ export default function TotemPage() {
     // Salva birth_year per la RPC hera_armo_play
     setBirthYearForPlay(birthYear);
     setCodeLoading(false);
+    // Reset selfie state e vai alla schermata selfie
+    setSelfieDataUrl(null);
+    setSelfieStorageUrl(null);
+    setSelfieStep("idle");
+    setSelfieError("");
+    setScreen("selfie");
+  }
+
+  // ── Selfie helpers ──────────────────────────────────────────────────────────
+
+  async function startCamera() {
+    setSelfieError("");
+    setSelfieStep("capturing");
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 640 } },
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play();
+      }
+    } catch {
+      setSelfieError("Fotocamera non disponibile. Usa il pulsante di upload.");
+      setSelfieStep("idle");
+    }
+  }
+
+  function stopCamera() {
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+  }
+
+  async function capturePhoto() {
+    if (!videoRef.current || !captureCanvasRef.current) return;
+    const video = videoRef.current;
+    const canvas = captureCanvasRef.current;
+    const size = Math.min(video.videoWidth, video.videoHeight);
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext("2d")!;
+    // Center-crop
+    const offsetX = (video.videoWidth - size) / 2;
+    const offsetY = (video.videoHeight - size) / 2;
+    ctx.drawImage(video, offsetX, offsetY, size, size, 0, 0, size, size);
+    stopCamera();
+    await processImage(canvas.toDataURL("image/jpeg", 0.9));
+  }
+
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      const dataUrl = ev.target?.result as string;
+      await processImage(dataUrl);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  async function processImage(sourceDataUrl: string) {
+    setSelfieStep("processing");
+    setSelfieError("");
+    try {
+      const { removeBackground } = await import("@imgly/background-removal");
+
+      // Convert data URL to blob
+      const res = await fetch(sourceDataUrl);
+      const blob = await res.blob();
+
+      const resultBlob = await removeBackground(blob, {
+        model: "isnet_quint8",
+        output: { format: "image/png", quality: 0.85 },
+      });
+
+      // Convert result to data URL for preview
+      const outputUrl = URL.createObjectURL(resultBlob);
+      setSelfieDataUrl(outputUrl);
+
+      // Upload to Supabase Storage
+      if (event) {
+        const filename = `${event.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.png`;
+        const { data: uploadData } = await supabase.storage
+          .from("armo-selfies-test")
+          .upload(filename, resultBlob, { contentType: "image/png", upsert: false });
+        if (uploadData) {
+          const { data: urlData } = supabase.storage
+            .from("armo-selfies-test")
+            .getPublicUrl(uploadData.path);
+          setSelfieStorageUrl(urlData.publicUrl);
+        }
+      }
+
+      setSelfieStep("preview");
+    } catch (err) {
+      console.error("Background removal error:", err);
+      setSelfieError("Errore nell'elaborazione della foto. Riprova.");
+      setSelfieStep("idle");
+    }
+  }
+
+  function skipSelfie() {
+    stopCamera();
+    setSelfieDataUrl(null);
+    setSelfieStorageUrl(null);
     setScreen("quiz");
   }
+
+  function confirmSelfie() {
+    stopCamera();
+    setScreen("quiz");
+  }
+
+  function retrySelfie() {
+    setSelfieDataUrl(null);
+    setSelfieStorageUrl(null);
+    setSelfieStep("idle");
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
+  // ── End selfie helpers ──────────────────────────────────────────────────────
 
   function handleSelectAnswer(questionId: string, option: SelectedOption) {
     setSelectedAnswers((prev) => ({ ...prev, [questionId]: option }));
@@ -252,6 +384,11 @@ export default function TotemPage() {
     setProfile(null);
     setFinalScores({ verde: 0, ciano: 0, magenta: 0 });
     setPostcardUrl(null);
+    setSelfieDataUrl(null);
+    setSelfieStorageUrl(null);
+    setSelfieStep("idle");
+    setSelfieError("");
+    stopCamera();
     setScreen("intro");
   }
 
@@ -362,6 +499,127 @@ export default function TotemPage() {
                 {codeLoading ? "Verifica in corso..." : "ACCEDI ALL'EXPERIENCE"}
               </button>
             </div>
+          </div>
+        )}
+
+        {/* SELFIE */}
+        {screen === "selfie" && (
+          <div className="text-center space-y-10 w-full max-w-[700px]">
+            {/* hidden canvas for capture */}
+            <canvas ref={captureCanvasRef} className="hidden" />
+            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
+
+            {selfieStep === "idle" && (
+              <>
+                <div className="space-y-4">
+                  <h2 className="text-5xl font-bold text-foreground">Scatta la tua foto</h2>
+                  <p className="text-2xl text-muted-foreground leading-relaxed">
+                    {userName ? `Ciao ${userName}! ` : ""}Il tuo ritratto entrerà nel gradiente personale.
+                  </p>
+                </div>
+
+                {selfieError && (
+                  <p className="text-lg text-destructive font-medium">{selfieError}</p>
+                )}
+
+                <div className="flex flex-col items-center gap-5">
+                  <button
+                    onClick={startCamera}
+                    className="flex items-center gap-4 text-2xl font-bold px-14 py-6 rounded-full text-white shadow-lg hover:scale-105 transition-transform"
+                    style={{ background: `linear-gradient(135deg, ${HERA_COLORS.verde}, ${HERA_COLORS.ciano}, ${HERA_COLORS.magenta})` }}
+                  >
+                    📷 APRI FOTOCAMERA
+                  </button>
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex items-center gap-4 text-xl font-semibold px-12 py-5 rounded-full border-2 border-primary text-primary hover:bg-primary/5 transition-colors"
+                  >
+                    🖼️ CARICA UNA FOTO
+                  </button>
+                  <button onClick={skipSelfie} className="text-lg text-muted-foreground underline mt-2">
+                    Salta questo passaggio
+                  </button>
+                </div>
+              </>
+            )}
+
+            {selfieStep === "capturing" && (
+              <>
+                <div className="space-y-4">
+                  <h2 className="text-5xl font-bold text-foreground">Mettiti in posa!</h2>
+                  <p className="text-xl text-muted-foreground">Centra il viso e scatta quando sei pronto/a</p>
+                </div>
+                {/* Anteprima camera con maschera circolare */}
+                <div className="relative mx-auto" style={{ width: 400, height: 400 }}>
+                  <div className="absolute inset-0 rounded-full overflow-hidden border-8 border-transparent"
+                    style={{ background: `linear-gradient(white, white) padding-box, linear-gradient(135deg, ${HERA_COLORS.verde}, ${HERA_COLORS.ciano}, ${HERA_COLORS.magenta}) border-box` }}
+                  >
+                    <video
+                      ref={videoRef}
+                      autoPlay
+                      playsInline
+                      muted
+                      className="w-full h-full object-cover scale-x-[-1]"
+                    />
+                  </div>
+                </div>
+                <div className="flex flex-col items-center gap-4">
+                  <button
+                    onClick={capturePhoto}
+                    className="w-24 h-24 rounded-full text-white text-5xl flex items-center justify-center shadow-xl hover:scale-110 transition-transform"
+                    style={{ background: `linear-gradient(135deg, ${HERA_COLORS.verde}, ${HERA_COLORS.ciano}, ${HERA_COLORS.magenta})` }}
+                  >
+                    📸
+                  </button>
+                  <button onClick={() => { stopCamera(); setSelfieStep("idle"); }} className="text-lg text-muted-foreground underline">
+                    Annulla
+                  </button>
+                </div>
+              </>
+            )}
+
+            {selfieStep === "processing" && (
+              <div className="space-y-8 flex flex-col items-center">
+                <div className="w-32 h-32 rounded-full border-4 border-muted border-t-primary animate-spin" />
+                <p className="text-3xl font-bold text-foreground">Elaborazione foto in corso...</p>
+                <p className="text-xl text-muted-foreground">Stiamo rimuovendo lo sfondo</p>
+              </div>
+            )}
+
+            {selfieStep === "preview" && selfieDataUrl && (
+              <>
+                <div className="space-y-3">
+                  <h2 className="text-5xl font-bold text-foreground">Perfetta!</h2>
+                  <p className="text-xl text-muted-foreground">Ecco come apparirà nel tuo gradiente</p>
+                </div>
+                {/* Preview composita: selfie dentro anello */}
+                <div className="relative mx-auto flex items-center justify-center" style={{ width: 340, height: 340 }}>
+                  <div
+                    className="rounded-full p-5 shadow-2xl"
+                    style={{
+                      background: `linear-gradient(135deg, ${HERA_COLORS.verde}, ${HERA_COLORS.ciano}, ${HERA_COLORS.magenta})`,
+                      width: 340, height: 340,
+                    }}
+                  >
+                    <div className="rounded-full w-full h-full overflow-hidden bg-[#e8e0ec]">
+                      <img src={selfieDataUrl} alt="Selfie" className="w-full h-full object-cover" />
+                    </div>
+                  </div>
+                </div>
+                <div className="flex flex-col items-center gap-4">
+                  <button
+                    onClick={confirmSelfie}
+                    className="text-2xl font-bold px-14 py-6 rounded-full text-white shadow-lg hover:scale-105 transition-transform"
+                    style={{ background: `linear-gradient(135deg, ${HERA_COLORS.verde}, ${HERA_COLORS.ciano}, ${HERA_COLORS.magenta})` }}
+                  >
+                    ✓ OTTIMA! PROCEDI
+                  </button>
+                  <button onClick={retrySelfie} className="text-lg text-muted-foreground underline">
+                    Riprova
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         )}
 
@@ -491,9 +749,8 @@ export default function TotemPage() {
                 >
                   {/* Foto dentro */}
                   <div className="rounded-full w-full h-full overflow-hidden bg-[#e8e0ec]">
-                    {/* TODO: sostituire con selfie del partecipante */}
                     <img
-                      src="/brand/placeholder-person.svg"
+                      src={selfieDataUrl || "/brand/placeholder-person.svg"}
                       alt="Profilo"
                       className="w-full h-full object-cover"
                     />
