@@ -30,8 +30,8 @@
 
 ### Analytics & Admin Stats
 - [x] Dashboard statistiche (/admin/dashboard) con KPI, profili, premi
-- [ ] Pagina codici admin (lista, status, export CSV)
-- [ ] Live player tracking (sessioni attive, play-per-ora real-time)
+- [x] Pagina codici admin — tab Registrazioni + tab Codici Premio, export CSV per entrambi, filtri e ricerca
+- [x] Live player tracking — Supabase Realtime subscription su hera_armo_sessions, badge LIVE + contatore sessioni in tempo reale, export CSV sessioni dalla dashboard
 
 ### Registrazione & Accesso
 - [x] Tabella `hera_armo_registrations` con RPC `hera_armo_register` e `hera_armo_validate_code`

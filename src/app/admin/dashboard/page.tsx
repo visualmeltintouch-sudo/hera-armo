@@ -1,10 +1,39 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useEventSelector, EventSelectorProvider, EventSelectorDropdown } from "@/components/admin/EventSelector";
 import { HERA_COLORS } from "@/lib/constants";
 import type { ProfileKey } from "@/lib/types";
+import type { RealtimeChannel } from "@supabase/supabase-js";
+
+function exportSessionsCsv(eventId: string) {
+  const supabase = createClient();
+  supabase
+    .from("hera_armo_sessions")
+    .select("id, age_group, birth_year, score_verde, score_ciano, score_magenta, profile_key, played_at")
+    .eq("event_id", eventId)
+    .order("played_at", { ascending: false })
+    .then(({ data }) => {
+      if (!data?.length) return;
+      const headers = Object.keys(data[0]);
+      const lines = [
+        headers.join(","),
+        ...data.map((r) =>
+          headers.map((h) => {
+            const v = (r as Record<string, unknown>)[h] ?? "";
+            const s = String(v).replace(/"/g, '""');
+            return /[,"\n]/.test(s) ? `"${s}"` : s;
+          }).join(",")
+        ),
+      ];
+      const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `sessioni-${eventId.slice(0, 8)}.csv`;
+      a.click();
+    });
+}
 
 interface Stats {
   totalSessions: number;
@@ -67,6 +96,8 @@ function DashboardContent() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(false);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
+  const [liveCount, setLiveCount] = useState<number | null>(null);
+  const channelRef = useRef<RealtimeChannel | null>(null);
 
   async function load() {
     if (!selectedEventId) return;
@@ -168,6 +199,49 @@ function DashboardContent() {
 
   useEffect(() => {
     load();
+
+    // Cleanup previous channel
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
+    }
+
+    if (!selectedEventId) return;
+
+    // Supabase Realtime: listen for new sessions
+    const channel = supabase
+      .channel(`dashboard-sessions-${selectedEventId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "hera_armo_sessions",
+          filter: `event_id=eq.${selectedEventId}`,
+        },
+        () => {
+          setLiveCount((c) => (c ?? 0) + 1);
+          setStats((prev) => {
+            if (!prev) return prev;
+            const today = new Date().toISOString().slice(0, 10);
+            const now = new Date().toISOString();
+            const isToday = now.startsWith(today);
+            return {
+              ...prev,
+              totalSessions: prev.totalSessions + 1,
+              todaySessions: isToday ? prev.todaySessions + 1 : prev.todaySessions,
+            };
+          });
+        }
+      )
+      .subscribe();
+
+    channelRef.current = channel;
+
+    return () => {
+      supabase.removeChannel(channel);
+      channelRef.current = null;
+    };
   }, [selectedEventId]);
 
   return (
@@ -179,10 +253,25 @@ function DashboardContent() {
           <EventSelectorDropdown />
         </div>
         <div className="flex items-center gap-3">
+          {/* Live badge */}
+          {selectedEventId && liveCount !== null && (
+            <span className="flex items-center gap-1.5 text-xs font-semibold text-green-700 bg-green-100 px-3 py-1.5 rounded-full">
+              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+              LIVE · +{liveCount} questa sessione
+            </span>
+          )}
           {lastRefresh && (
             <span className="text-xs text-muted-foreground">
               Aggiornato {lastRefresh.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })}
             </span>
+          )}
+          {selectedEventId && (
+            <button
+              onClick={() => exportSessionsCsv(selectedEventId)}
+              className="bg-card border border-border text-foreground text-sm font-medium px-4 py-2 rounded-lg hover:border-primary transition-colors"
+            >
+              ↓ CSV Sessioni
+            </button>
           )}
           <button
             onClick={load}
