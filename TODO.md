@@ -94,6 +94,8 @@
 - [x] Database seeded con domande + icone semantiche
 - [ ] Admin panel protetto (login Supabase RLS)
 - [ ] Operatore pagina protetta
+- [ ] **⚠️ RIMUOVERE prima del go-live: codice TEST bypass in `hera_armo_validate_code` RPC (riga 4-11 della funzione)**
+- [ ] **⚠️ RIMUOVERE prima del go-live: codice TEST123 bypass in `/operator/page.tsx` e operatore TEST123 in DB**
 - [ ] CNAME/custom domain (se richiesto da HERA)
 - [ ] SSL/TLS (Vercel di default)
 - [ ] Backup strategy per Supabase
