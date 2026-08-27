@@ -139,3 +139,40 @@ export interface ColorScores {
   ciano: number;
   magenta: number;
 }
+
+export type RegistrationStatus = "pending" | "playing" | "completed";
+
+export interface ArmoRegistration {
+  id: string;
+  event_id: string;
+  code: string;
+  age_group: AgeGroup;
+  birth_year: number;
+  name: string;
+  surname: string;
+  email: string;
+  phone: string;
+  customer_status: string | null;
+  codice_fiscale: string | null;
+  consent_concorso: boolean;
+  consent_profilazione: boolean;
+  consent_marketing: boolean;
+  consent_immagine: boolean;
+  status: RegistrationStatus;
+  created_at: string;
+}
+
+export interface RegisterResult {
+  code: string;
+  age_group: AgeGroup;
+  name: string;
+}
+
+export interface ValidateCodeResult {
+  valid: boolean;
+  age_group?: AgeGroup;
+  birth_year?: number;
+  name?: string;
+  registration_id?: string;
+  error?: string;
+}

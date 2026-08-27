@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { scoresToGradient } from "@/lib/gradient";
 import { generatePostcard, downloadPostcard } from "@/lib/postcard";
@@ -14,12 +14,13 @@ import type {
   QuizAnswer,
   PlayResult,
   SelectedOption,
+  ValidateCodeResult,
 } from "@/lib/types";
 
 type Screen =
   | "loading"
   | "intro"
-  | "birth_year"
+  | "code_entry"
   | "quiz"
   | "calculating"
   | "result"
@@ -51,12 +52,20 @@ export default function TotemPage() {
 
   const [event, setEvent] = useState<ArmoEvent | null>(null);
   const [settings, setSettings] = useState<ArmoSettings | null>(null);
-  const [birthYear, setBirthYear] = useState("");
+
+  // Code entry
+  const [accessCode, setAccessCode] = useState("");
+  const [codeError, setCodeError] = useState("");
+  const [codeLoading, setCodeLoading] = useState(false);
+  const [registrationId, setRegistrationId] = useState<string | null>(null);
+  const [userName, setUserName] = useState("");
+  const qrRef = useRef<HTMLCanvasElement>(null);
 
   const [questions, setQuestions] = useState<ArmoQuestion[]>([]);
   // selectedAnswers: questionId → 'a' | 'b'
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, SelectedOption>>({});
 
+  const [birthYearForPlay, setBirthYearForPlay] = useState(1990);
   const [result, setResult] = useState<PlayResult | null>(null);
   const [profile, setProfile] = useState<ArmoProfile | null>(null);
   const [finalScores, setFinalScores] = useState<ColorScores>({ verde: 0, ciano: 0, magenta: 0 });
@@ -96,32 +105,69 @@ export default function TotemPage() {
     setScreen("intro");
   }
 
-  async function handleBirthYearSubmit() {
-    if (!event || !settings) return;
-    const year = parseInt(birthYear);
-    if (isNaN(year) || year < 1920 || year > 2010) return;
+  // Genera QR code sulla canvas dopo che la schermata code_error è visibile
+  useEffect(() => {
+    if (codeError && qrRef.current && event) {
+      const url = `${window.location.origin}/register`;
+      import("qrcode").then((QRCode) => {
+        QRCode.toCanvas(qrRef.current!, url, { width: 180, margin: 1 }, () => {});
+      });
+    }
+  }, [codeError, event]);
 
-    const group = year >= settings.year_cutoff ? "young" : "classic";
+  async function handleCodeSubmit() {
+    if (!event || !accessCode.trim()) return;
+    setCodeLoading(true);
+    setCodeError("");
 
-    const { data } = await supabase
+    const { data, error: err } = await supabase.rpc("hera_armo_validate_code", {
+      p_code: accessCode.trim().toUpperCase(),
+      p_event_id: event.id,
+    });
+
+    if (err || !data) {
+      setCodeError("Errore di connessione. Riprova.");
+      setCodeLoading(false);
+      return;
+    }
+
+    const res = data as ValidateCodeResult;
+    if (!res.valid) {
+      setCodeError(res.error || "Codice non valido");
+      setCodeLoading(false);
+      return;
+    }
+
+    // Codice valido: carica domande direttamente
+    setRegistrationId(res.registration_id || null);
+    setUserName(res.name || "");
+
+    const group = res.age_group!;
+    const birthYear = res.birth_year!;
+
+    const { data: qData } = await supabase
       .from("hera_armo_questions")
       .select("*")
       .eq("event_id", event.id)
       .eq("age_group", group)
       .eq("is_active", true);
 
-    if (!data || data.length === 0) {
+    if (!qData || qData.length === 0) {
       setError("Nessuna domanda disponibile");
       setScreen("error");
+      setCodeLoading(false);
       return;
     }
 
-    const shuffled = (data as ArmoQuestion[])
+    const shuffled = (qData as ArmoQuestion[])
       .sort(() => Math.random() - 0.5)
-      .slice(0, settings.questions_per_session);
+      .slice(0, settings?.questions_per_session ?? 10);
 
     setQuestions(shuffled);
     setSelectedAnswers({});
+    // Salva birth_year per la RPC hera_armo_play
+    setBirthYearForPlay(birthYear);
+    setCodeLoading(false);
     setScreen("quiz");
   }
 
@@ -158,7 +204,7 @@ export default function TotemPage() {
 
     const { data, error: err } = await supabase.rpc("hera_armo_play", {
       p_event_id: event.id,
-      p_birth_year: parseInt(birthYear),
+      p_birth_year: birthYearForPlay,
       p_answers: finalAnswers,
     });
 
@@ -196,7 +242,10 @@ export default function TotemPage() {
   }
 
   function handleRestart() {
-    setBirthYear("");
+    setAccessCode("");
+    setCodeError("");
+    setRegistrationId(null);
+    setUserName("");
     setQuestions([]);
     setSelectedAnswers({});
     setResult(null);
@@ -255,7 +304,7 @@ export default function TotemPage() {
               Ogni scelta lascia il suo colore. Ogni colore racconta chi sei.
             </p>
             <button
-              onClick={() => setScreen("birth_year")}
+              onClick={() => { setAccessCode(""); setCodeError(""); setScreen("code_entry"); }}
               className="text-3xl font-semibold px-16 py-6 rounded-full text-white transition-transform hover:scale-105 shadow-lg"
               style={{ background: `linear-gradient(135deg, ${HERA_COLORS.verde}, ${HERA_COLORS.ciano}, ${HERA_COLORS.magenta})` }}
             >
@@ -264,30 +313,54 @@ export default function TotemPage() {
           </div>
         )}
 
-        {/* BIRTH YEAR */}
-        {screen === "birth_year" && (
-          <div className="text-center space-y-12">
-            <h2 className="text-5xl font-bold text-foreground">In che anno sei nato/a?</h2>
-            <div className="space-y-8">
+        {/* CODE ENTRY */}
+        {screen === "code_entry" && (
+          <div className="text-center space-y-12 w-full max-w-[700px]">
+            <div className="space-y-4">
+              <h2 className="text-5xl font-bold text-foreground">Inserisci il tuo codice</h2>
+              <p className="text-2xl text-muted-foreground">
+                Hai ricevuto un codice di accesso dopo la registrazione
+              </p>
+            </div>
+
+            <div className="space-y-6">
               <input
-                type="number"
-                inputMode="numeric"
-                value={birthYear}
-                onChange={(e) => setBirthYear(e.target.value)}
-                placeholder="es. 1995"
-                className="w-[400px] text-center text-5xl font-bold bg-transparent border-b-4 border-border focus:border-primary outline-none py-4 placeholder-muted-foreground/50 text-foreground"
-                min={1920}
-                max={2010}
+                type="text"
+                inputMode="text"
+                value={accessCode}
+                onChange={(e) => { setAccessCode(e.target.value.toUpperCase().slice(0, 5)); setCodeError(""); }}
+                placeholder="es. AB3K7"
+                className="w-[340px] text-center text-6xl font-black tracking-[0.25em] font-mono bg-transparent border-b-4 border-border focus:border-primary outline-none py-4 placeholder-muted-foreground/30 text-foreground uppercase"
+                autoComplete="off"
+                maxLength={5}
               />
-              <div>
-                <button
-                  onClick={handleBirthYearSubmit}
-                  disabled={!birthYear || parseInt(birthYear) < 1920 || parseInt(birthYear) > 2010}
-                  className="text-2xl font-semibold px-12 py-5 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground disabled:opacity-30 transition-all"
-                >
-                  CONTINUA
-                </button>
-              </div>
+
+              {/* Errore + QR code */}
+              {codeError && (
+                <div className="space-y-6">
+                  <p className="text-xl text-destructive font-semibold">{codeError}</p>
+                  <div className="flex flex-col items-center gap-4">
+                    <p className="text-lg text-muted-foreground">Non sei ancora registrato/a?</p>
+                    <canvas ref={qrRef} className="rounded-xl shadow-md" />
+                    <p className="text-base text-muted-foreground">
+                      Scansiona il QR per registrarti
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <button
+                onClick={handleCodeSubmit}
+                disabled={codeLoading || accessCode.trim().length < 5}
+                className="text-2xl font-bold px-14 py-6 rounded-full text-white disabled:opacity-30 transition-all hover:scale-105 shadow-lg"
+                style={{
+                  background: accessCode.trim().length === 5
+                    ? `linear-gradient(135deg, ${HERA_COLORS.verde}, ${HERA_COLORS.ciano}, ${HERA_COLORS.magenta})`
+                    : "#cecece",
+                }}
+              >
+                {codeLoading ? "Verifica in corso..." : "ACCEDI ALL'EXPERIENCE"}
+              </button>
             </div>
           </div>
         )}

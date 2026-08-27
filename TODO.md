@@ -33,6 +33,13 @@
 - [ ] Pagina codici admin (lista, status, export CSV)
 - [ ] Live player tracking (sessioni attive, play-per-ora real-time)
 
+### Registrazione & Accesso
+- [x] Tabella `hera_armo_registrations` con RPC `hera_armo_register` e `hera_armo_validate_code`
+- [x] Pagina `/register` — form responsive mobile-first con tutti i campi richiesti dal brief
+- [x] Totem: schermata "inserisci il tuo codice" con QR fallback per registrazione
+- [x] Il codice identifica automaticamente age_group (young/classic) — nessun re-inserimento anno di nascita dal totem
+- [ ] **TODO: L'URL nel QR code del totem punta a `/register` (stesso dominio). Sostituire con URL della landing page reale quando disponibile.**
+
 ### Quiz UX
 - [x] Tutte le domande visibili su pagina unica scrollabile (anziché una alla volta)
 - [x] Schermata risultato: gradiente come anello attorno alla foto persona
