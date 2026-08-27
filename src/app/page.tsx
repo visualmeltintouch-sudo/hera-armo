@@ -218,27 +218,39 @@ export default function TotemPage() {
     if (!videoRef.current || !captureCanvasRef.current) return;
     const video = videoRef.current;
     const canvas = captureCanvasRef.current;
-    const size = Math.min(video.videoWidth, video.videoHeight);
-    canvas.width = size;
-    canvas.height = size;
+    // Center-crop square, capped at 384px for speed
+    const srcSize = Math.min(video.videoWidth, video.videoHeight);
+    const outSize = Math.min(srcSize, 384);
+    canvas.width = outSize;
+    canvas.height = outSize;
     const ctx = canvas.getContext("2d")!;
-    // Center-crop
-    const offsetX = (video.videoWidth - size) / 2;
-    const offsetY = (video.videoHeight - size) / 2;
-    ctx.drawImage(video, offsetX, offsetY, size, size, 0, 0, size, size);
+    const offsetX = (video.videoWidth - srcSize) / 2;
+    const offsetY = (video.videoHeight - srcSize) / 2;
+    ctx.drawImage(video, offsetX, offsetY, srcSize, srcSize, 0, 0, outSize, outSize);
     stopCamera();
-    await processImage(canvas.toDataURL("image/jpeg", 0.9));
+    await processImage(canvas.toDataURL("image/jpeg", 0.85));
   }
 
   async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = async (ev) => {
-      const dataUrl = ev.target?.result as string;
-      await processImage(dataUrl);
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = async () => {
+      URL.revokeObjectURL(objectUrl);
+      // Riduco a max 384px per velocità
+      const size = Math.min(img.naturalWidth, img.naturalHeight, 384);
+      const canvas = document.createElement("canvas");
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext("2d")!;
+      const offsetX = (img.naturalWidth - Math.min(img.naturalWidth, img.naturalHeight)) / 2;
+      const offsetY = (img.naturalHeight - Math.min(img.naturalWidth, img.naturalHeight)) / 2;
+      const srcSize = Math.min(img.naturalWidth, img.naturalHeight);
+      ctx.drawImage(img, offsetX, offsetY, srcSize, srcSize, 0, 0, size, size);
+      await processImage(canvas.toDataURL("image/jpeg", 0.85));
     };
-    reader.readAsDataURL(file);
+    img.src = objectUrl;
   }
 
   async function processImage(sourceDataUrl: string) {
@@ -253,7 +265,7 @@ export default function TotemPage() {
 
       const resultBlob = await removeBackground(blob, {
         model: "isnet_quint8",
-        output: { format: "image/png", quality: 0.85 },
+        output: { format: "image/png", quality: 0.6 },
       });
 
       // Convert result to data URL for preview
