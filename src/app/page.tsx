@@ -79,6 +79,7 @@ export default function TotemPage() {
   const [selfieDataUrl, setSelfieDataUrl] = useState<string | null>(null); // bg-removed PNG (data URL)
   const [selfieStorageUrl, setSelfieStorageUrl] = useState<string | null>(null); // uploaded URL
   const [selfieError, setSelfieError] = useState("");
+  const [selfieProcessing, setSelfieProcessing] = useState(false); // bg removal in corso
   const videoRef = useRef<HTMLVideoElement>(null);
   const captureCanvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -261,6 +262,7 @@ export default function TotemPage() {
 
   // Gira in background mentre l'utente fa il quiz
   async function processInBackground(sourceDataUrl: string) {
+    setSelfieProcessing(true);
     try {
       const { removeBackground } = await import("@imgly/background-removal");
       const res = await fetch(sourceDataUrl);
@@ -268,6 +270,8 @@ export default function TotemPage() {
 
       const resultBlob = await removeBackground(blob, {
         model: "isnet_quint8",
+        // Serve i file WASM/modello dal CDN — necessario in produzione Next.js
+        publicPath: "https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.7.0/dist/",
         output: { format: "image/png", quality: 0.6 },
       });
 
@@ -288,8 +292,9 @@ export default function TotemPage() {
         }
       }
     } catch (err) {
-      console.error("Background removal error (background):", err);
-      // Non mostriamo errore all'utente — al risultato resta la foto raw
+      console.error("Background removal error:", err);
+    } finally {
+      setSelfieProcessing(false);
     }
   }
 
@@ -401,6 +406,7 @@ export default function TotemPage() {
     setSelfieStorageUrl(null);
     setSelfieStep("idle");
     setSelfieError("");
+    setSelfieProcessing(false);
     stopCamera();
     setScreen("intro");
   }
@@ -767,12 +773,17 @@ export default function TotemPage() {
                   }}
                 >
                   {/* Foto dentro */}
-                  <div className="rounded-full w-full h-full overflow-hidden bg-[#e8e0ec]">
+                  <div className="rounded-full w-full h-full overflow-hidden bg-[#e8e0ec] relative">
                     <img
                       src={selfieDataUrl || "/brand/placeholder-person.svg"}
                       alt="Profilo"
                       className="w-full h-full object-cover"
                     />
+                    {selfieProcessing && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-white/50">
+                        <div className="w-10 h-10 rounded-full border-4 border-muted border-t-primary animate-spin" />
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
