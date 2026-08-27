@@ -22,8 +22,13 @@ export function FormModal({
   const ref = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
-    if (open) ref.current?.showModal();
-    else ref.current?.close();
+    const el = ref.current;
+    if (!el) return;
+    if (open) {
+      if (!el.open) el.showModal();
+    } else {
+      if (el.open) el.close();
+    }
   }, [open]);
 
   if (!open) return null;
@@ -34,7 +39,6 @@ export function FormModal({
         ref={ref}
         onClose={onClose}
         className="bg-card border border-border rounded-2xl p-0 w-full max-w-lg max-h-[90vh] overflow-y-auto text-foreground backdrop:bg-transparent"
-        open
       >
         <form onSubmit={onSubmit}>
           <div className="p-6 border-b border-border">
