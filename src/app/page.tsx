@@ -500,7 +500,7 @@ export default function TotemPage() {
 
               {/* Suggerimenti codici test — ⚠️ rimuovere prima del go-live */}
               <div className="flex gap-3 justify-center flex-wrap">
-                {[{ code: "YOUNG", label: "Young (1982+)" }, { code: "BOOMER", label: "Classic (<1982)" }].map(({ code, label }) => (
+                {[{ code: "YOUNG", label: "Young (1982+)" }, { code: "BOOME", label: "Classic (<1982)" }].map(({ code, label }) => (
                   <button
                     key={code}
                     type="button"
