@@ -268,36 +268,51 @@ export default function TotemPage() {
   // Gira in background mentre l'utente fa il quiz
   async function processInBackground(sourceDataUrl: string) {
     setSelfieProcessing(true);
+    setSelfieDataUrl(null); // reset: niente foto finché non è pronta senza sfondo
+    console.log("[BG-REMOVAL] start");
     try {
+      console.log("[BG-REMOVAL] importing library...");
       const { removeBackground } = await import("@imgly/background-removal");
+      console.log("[BG-REMOVAL] library loaded ✓");
+
+      console.log("[BG-REMOVAL] fetching source image...");
       const res = await fetch(sourceDataUrl);
       const blob = await res.blob();
+      console.log("[BG-REMOVAL] source blob ready, size:", blob.size, "type:", blob.type);
 
+      console.log("[BG-REMOVAL] running removeBackground (model: isnet_quint8)...");
       const resultBlob = await removeBackground(blob, {
         model: "isnet_quint8",
-        // Serve i file WASM/modello dal CDN — necessario in produzione Next.js
         publicPath: "https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.7.0/dist/",
         output: { format: "image/png", quality: 0.6 },
+        progress: (key: string, current: number, total: number) => {
+          console.log(`[BG-REMOVAL] progress: ${key} ${current}/${total}`);
+        },
       });
+      console.log("[BG-REMOVAL] done ✓ result size:", resultBlob.size);
 
       const outputUrl = URL.createObjectURL(resultBlob);
-      setSelfieDataUrl(outputUrl); // sostituisce il raw con la versione senza sfondo
+      setSelfieDataUrl(outputUrl);
+      console.log("[BG-REMOVAL] photo updated in state ✓");
 
       // Upload su Supabase Storage
       if (event) {
         const filename = `${event.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.png`;
-        const { data: uploadData } = await supabase.storage
+        const { data: uploadData, error: uploadErr } = await supabase.storage
           .from("armo-selfies-test")
           .upload(filename, resultBlob, { contentType: "image/png", upsert: false });
+        if (uploadErr) console.error("[BG-REMOVAL] upload error:", uploadErr);
         if (uploadData) {
           const { data: urlData } = supabase.storage
             .from("armo-selfies-test")
             .getPublicUrl(uploadData.path);
           setSelfieStorageUrl(urlData.publicUrl);
+          console.log("[BG-REMOVAL] uploaded ✓", urlData.publicUrl);
         }
       }
     } catch (err) {
-      console.error("Background removal error:", err);
+      console.error("[BG-REMOVAL] ERROR:", err);
+      // Non mostriamo foto raw — manteniamo selfieDataUrl null e rimuoviamo il loading
     } finally {
       setSelfieProcessing(false);
     }
@@ -778,16 +793,17 @@ export default function TotemPage() {
                   }}
                 >
                   {/* Foto dentro */}
-                  <div className="rounded-full w-full h-full overflow-hidden bg-[#e8e0ec] relative">
-                    <img
-                      src={selfieDataUrl || "/brand/placeholder-person.svg"}
-                      alt="Profilo"
-                      className="w-full h-full object-cover"
-                    />
-                    {selfieProcessing && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-white/50">
-                        <div className="w-10 h-10 rounded-full border-4 border-muted border-t-primary animate-spin" />
+                  <div className="rounded-full w-full h-full overflow-hidden bg-[#e8e0ec] flex items-center justify-center">
+                    {selfieProcessing ? (
+                      // Rimozione sfondo in corso
+                      <div className="flex flex-col items-center gap-3">
+                        <div className="w-12 h-12 rounded-full border-4 border-white/40 border-t-white animate-spin" />
+                        <span className="text-white/80 text-xs font-medium">elaborazione...</span>
                       </div>
+                    ) : selfieDataUrl ? (
+                      <img src={selfieDataUrl} alt="Profilo" className="w-full h-full object-cover" />
+                    ) : (
+                      <img src="/brand/placeholder-person.svg" alt="Profilo" className="w-full h-full object-cover" />
                     )}
                   </div>
                 </div>
