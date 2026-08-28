@@ -237,19 +237,24 @@ export default function TotemPage() {
     if (!file) return;
     const img = new Image();
     const objectUrl = URL.createObjectURL(file);
-    img.onload = async () => {
+    img.onload = () => {
       URL.revokeObjectURL(objectUrl);
-      // Riduco a max 384px per velocità
-      const size = Math.min(img.naturalWidth, img.naturalHeight, 384);
+      const srcSize = Math.min(img.naturalWidth, img.naturalHeight);
+      const size = Math.min(srcSize, 384);
       const canvas = document.createElement("canvas");
       canvas.width = size;
       canvas.height = size;
       const ctx = canvas.getContext("2d")!;
-      const offsetX = (img.naturalWidth - Math.min(img.naturalWidth, img.naturalHeight)) / 2;
-      const offsetY = (img.naturalHeight - Math.min(img.naturalWidth, img.naturalHeight)) / 2;
-      const srcSize = Math.min(img.naturalWidth, img.naturalHeight);
+      const offsetX = (img.naturalWidth - srcSize) / 2;
+      const offsetY = (img.naturalHeight - srcSize) / 2;
       ctx.drawImage(img, offsetX, offsetY, srcSize, srcSize, 0, 0, size, size);
+      // Normalizza sempre a JPEG — gestisce AVIF, HEIC, JFIF, WebP, ecc.
       showRawPreview(canvas.toDataURL("image/jpeg", 0.85));
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      setSelfieError("Formato non supportato dal browser. Usa JPG, PNG o WebP.");
+      if (fileInputRef.current) fileInputRef.current.value = "";
     };
     img.src = objectUrl;
   }
@@ -540,7 +545,7 @@ export default function TotemPage() {
           <div className="text-center space-y-10 w-full max-w-[700px]">
             {/* hidden canvas for capture */}
             <canvas ref={captureCanvasRef} className="hidden" />
-            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
+            <input ref={fileInputRef} type="file" accept="image/jpeg,image/jpg,image/png,image/webp,image/gif" className="hidden" onChange={handleFileUpload} />
 
             {selfieStep === "idle" && (
               <>
