@@ -17,12 +17,12 @@ colors:
 typography:
   display:
     fontFamily: "Circular Std, Geist, Arial, sans-serif"
-    fontSize: "clamp(2.5rem, 6vw, 4.5rem)"
+    fontSize: "clamp(5rem, 12vw, 9rem)"
     fontWeight: 700
     lineHeight: 1.05
   body:
     fontFamily: "Circular Std, Geist, Arial, sans-serif"
-    fontSize: "1.25rem"
+    fontSize: "2.5rem"
     fontWeight: 400
     lineHeight: 1.5
 rounded:
@@ -59,10 +59,11 @@ This is a deliberate rejection of the earlier build, which painted a faint tri-c
 
 **Key Characteristics:**
 - Pure white/near-white ground (#fcfcfc) for the totem and the whole product, not just admin chrome
-- HERA brand accent (#e4379b magenta-pink) reserved for CTAs, focus states, and links — never a background field
-- The three HERA hues (verde/ciano/magenta) appear ONLY inside the intro logotype flourish and the final result gradient — never during the quiz itself
+- **Buttons (2026-09 revision):** solid HERA hues, never gradients. Magenta (#EC008C) is the default action color; verde (#00A651) marks a positive confirmation; ciano (#00AEEF) marks a neutral/secondary action; red (#ef4444) marks a destructive/disruptive action (reset, restart). This supersedes the earlier "gradient CTA" and "one accent" button rules below — kept for the reveal-only elements (progress bar, result gradient, hero backgrounds), which are unaffected.
+- The three HERA hues also appear in the intro hero background and the final result gradient — those remain non-interactive, decorative reveals, distinct from the semantic button colors above.
 - Answers are icon + label cards, not lettered "A/B" choices — every option reads as a concrete thing, not an abstract slot
 - Circular Std as the display and body voice everywhere; Geist is the silent fallback
+- **Type scale doubled (2026-09-11):** the totem runs on a 55" screen viewed from a few steps away — every text size across the visitor flow was doubled from the original scale below for legibility at that distance.
 
 ## Colors
 
@@ -87,9 +88,9 @@ Restrained strategy: neutrals carry the whole surface, one committed accent (HER
 - **Hairline Grey** (#cecece): borders, dividers, input outlines.
 
 ### Named Rules
-**The Withheld Gradient Rule.** The verde/ciano/magenta triad never appears as a background, wash, or ambient tint anywhere the visitor is still answering questions. It exists in exactly two places: the intro logotype ("HERAVIGLIOSA") and the result-screen gradient circle. Any future screen that shows quiz progress must stay neutral (foreground/muted only).
+**The Withheld Gradient Rule (backgrounds only).** The verde/ciano/magenta triad never appears as a background wash or ambient tint anywhere the visitor is still answering questions — it exists in the intro hero background, the result-screen gradient circle, and the postcard. This rule governs decorative surfaces, not buttons: see the Buttons section for the semantic button-color system introduced 2026-09.
 
-**The One Accent Rule.** Only one saturated color, the UI primary (#e4379b), is live during interaction (buttons, focus, links). It never competes with the reveal palette.
+**The One Accent Rule — superseded for buttons.** Buttons now use the 4-color semantic system (magenta/verde/ciano/rosso, see Buttons). This rule still governs non-button decorative accents (progress bar fill, focus rings on non-button elements).
 
 ## Typography
 
@@ -98,12 +99,12 @@ Restrained strategy: neutrals carry the whole surface, one committed accent (HER
 
 **Character:** Rounded, geometric, friendly without being juvenile — a single humanist grotesque voice carries both the punchy Gen-Z intro copy and the plainer institutional classic-tone copy, so age-group content differs in words, never in typeface.
 
-### Hierarchy
-- **Display** (700, clamp(2.5rem, 6vw, 4.5rem), 1.05): intro headline "LA TUA ARMOCROMIA HERAVIGLIOSA", result profile name.
-- **Headline** (700, 3rem, 1.1): birth-year prompt, "HAI VINTO!", question text.
-- **Title** (600, 1.5rem, 1.3): section labels, progress counter.
-- **Body** (400, 1.25rem, 1.5): supporting copy, profile description, answer card labels.
-- **Label** (500, 0.875rem, uppercase optional): muted micro-copy (progress "Domanda X di Y", footer hints).
+### Hierarchy (doubled scale, 2026-09-11 — 55" kiosk viewing distance)
+- **Display** (700, clamp(5rem, 12vw, 9rem), 1.05): intro headline "LA TUA ARMOCROMIA HERAVIGLIOSA", result profile name.
+- **Headline** (700, 6rem, 1.1): birth-year prompt, "HAI VINTO!", question text.
+- **Title** (600, 3rem, 1.3): section labels, progress counter.
+- **Body** (400, 2.5rem, 1.5): supporting copy, profile description, answer card labels.
+- **Label** (500, 1.75rem, uppercase optional): muted micro-copy (progress "Domanda X di Y", footer hints).
 
 ## Layout
 
@@ -124,9 +125,13 @@ Rounded-full pills for every primary button (matches the soft, humanist type). A
 
 ### Buttons
 - **Shape:** full pill (`rounded-full`).
-- **Primary:** brand-magenta background (#e4379b) or, on the two "big moment" CTAs (Inizia, Scarica postcard), the full HERA verde→ciano→magenta gradient — white text, generous 48px horizontal padding.
-- **Hover / Focus:** `hover:scale-105` with the existing shadow, no color shift on the gradient CTAs; solid CTAs use `hover:bg-primary/90`.
-- **Secondary / Ghost:** underlined text links in muted or primary color, no fill, used for lower-emphasis moves (skip, restart, disconnect).
+- **Color is semantic, always solid — no gradients:**
+  - **Magenta** (#EC008C) — default/primary action (Partecipa, Avanti, Scatta foto, Scopri il premio).
+  - **Verde** (#00A651) — positive confirmation (es. "Ottima! Procedi" dopo il selfie).
+  - **Ciano** (#00AEEF) — neutral/secondary action (upload alternativo, tastiera on/off, strumenti di test).
+  - **Rosso** (#ef4444) — destructive/disruptive action (Ricomincia dalla schermata premio).
+- **Hover / Focus:** `active:scale-95` on touch press, no hover-dependent states (kiosk has no mouse).
+- **Secondary / Ghost:** underlined text links in muted color, no fill, used only for de-emphasized moves (skip, cancel) that carry no real risk.
 
 ### Answer Cards (signature component)
 - **Shape:** `rounded-3xl`, 2px hairline border (`border-border`).
