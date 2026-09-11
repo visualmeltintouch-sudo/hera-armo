@@ -5,39 +5,63 @@
     "ignoreValues": [
       {
         "rule": "design-system-font-size",
-        "value": "1.5rem",
-        "createdAt": "2026-09-11T15:46:36.984Z",
-        "reason": "User confirmed: text sizes intentionally doubled for 55in kiosk viewing distance (see DESIGN.md Hierarchy note)"
+        "value": "1.05rem",
+        "createdAt": "2026-09-11T16:10:00.000Z",
+        "reason": "User confirmed: totem text sizes are a x1.4 scale (doubled, then reduced 30%) for 55in kiosk viewing distance (see DESIGN.md Hierarchy note)"
       },
       {
         "rule": "design-system-font-size",
-        "value": "1.75rem",
-        "createdAt": "2026-09-11T15:46:37.263Z",
-        "reason": "User confirmed: text sizes intentionally doubled for 55in kiosk viewing distance (see DESIGN.md Hierarchy note)"
+        "value": "1.1025rem",
+        "createdAt": "2026-09-11T16:10:00.000Z",
+        "reason": "User confirmed: totem text sizes are a x1.4 scale (doubled, then reduced 30%) for 55in kiosk viewing distance (see DESIGN.md Hierarchy note)"
       },
       {
         "rule": "design-system-font-size",
-        "value": "2.25rem",
-        "createdAt": "2026-09-11T15:46:37.566Z",
-        "reason": "User confirmed: text sizes intentionally doubled for 55in kiosk viewing distance (see DESIGN.md Hierarchy note)"
+        "value": "1.225rem",
+        "createdAt": "2026-09-11T16:10:00.000Z",
+        "reason": "User confirmed: totem text sizes are a x1.4 scale (doubled, then reduced 30%) for 55in kiosk viewing distance (see DESIGN.md Hierarchy note)"
       },
       {
         "rule": "design-system-font-size",
-        "value": "2rem",
-        "createdAt": "2026-09-11T15:46:37.798Z",
-        "reason": "User confirmed: text sizes intentionally doubled for 55in kiosk viewing distance (see DESIGN.md Hierarchy note)"
+        "value": "1.4rem",
+        "createdAt": "2026-09-11T16:10:00.000Z",
+        "reason": "User confirmed: totem text sizes are a x1.4 scale (doubled, then reduced 30%) for 55in kiosk viewing distance (see DESIGN.md Hierarchy note)"
       },
       {
         "rule": "design-system-font-size",
-        "value": "7.5rem",
-        "createdAt": "2026-09-11T15:46:37.998Z",
-        "reason": "User confirmed: text sizes intentionally doubled for 55in kiosk viewing distance (see DESIGN.md Hierarchy note)"
+        "value": "1.47rem",
+        "createdAt": "2026-09-11T16:10:00.000Z",
+        "reason": "User confirmed: totem text sizes are a x1.4 scale (doubled, then reduced 30%) for 55in kiosk viewing distance (see DESIGN.md Hierarchy note)"
       },
       {
         "rule": "design-system-font-size",
-        "value": "9rem",
-        "createdAt": "2026-09-11T15:46:38.268Z",
-        "reason": "User confirmed: text sizes intentionally doubled for 55in kiosk viewing distance (see DESIGN.md Hierarchy note)"
+        "value": "1.575rem",
+        "createdAt": "2026-09-11T16:10:00.000Z",
+        "reason": "User confirmed: totem text sizes are a x1.4 scale (doubled, then reduced 30%) for 55in kiosk viewing distance (see DESIGN.md Hierarchy note)"
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "1.8375rem",
+        "createdAt": "2026-09-11T16:10:00.000Z",
+        "reason": "User confirmed: totem text sizes are a x1.4 scale (doubled, then reduced 30%) for 55in kiosk viewing distance (see DESIGN.md Hierarchy note)"
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "2.205rem",
+        "createdAt": "2026-09-11T16:10:00.000Z",
+        "reason": "User confirmed: totem text sizes are a x1.4 scale (doubled, then reduced 30%) for 55in kiosk viewing distance (see DESIGN.md Hierarchy note)"
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "2.94rem",
+        "createdAt": "2026-09-11T16:10:00.000Z",
+        "reason": "User confirmed: totem text sizes are a x1.4 scale (doubled, then reduced 30%) for 55in kiosk viewing distance (see DESIGN.md Hierarchy note)"
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "5.25rem",
+        "createdAt": "2026-09-11T16:10:00.000Z",
+        "reason": "User confirmed: totem text sizes are a x1.4 scale (doubled, then reduced 30%) for 55in kiosk viewing distance (see DESIGN.md Hierarchy note)"
       }
     ]
   }

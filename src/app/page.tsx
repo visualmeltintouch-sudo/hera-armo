@@ -807,7 +807,7 @@ export default function TotemPage() {
       {/* ── LOADING ── */}
       {screen === "loading" && (
         <div className="flex-1 flex items-center justify-center">
-          <p className="text-muted-foreground text-5xl">Caricamento...</p>
+          <p className="text-muted-foreground text-[1.47rem]">Caricamento...</p>
         </div>
       )}
 
@@ -815,10 +815,10 @@ export default function TotemPage() {
       {screen === "error" && (
         <div className="h-[1920px] w-full flex flex-col">
           <TopZone>
-            <p className="text-destructive text-5xl">{error}</p>
+            <p className="text-destructive text-[1.47rem]">{error}</p>
           </TopZone>
           <TouchZone>
-            <button onClick={handleRestart} className="text-5xl font-bold text-primary underline underline-offset-4">
+            <button onClick={handleRestart} className="text-[1.47rem] font-bold text-primary underline underline-offset-4">
               Riprova
             </button>
           </TouchZone>
@@ -840,10 +840,10 @@ export default function TotemPage() {
               style={{ background: "rgba(255,255,255,0.12)", border: "2px dashed rgba(255,255,255,0.4)" }}
             >
               <div className="text-center space-y-4">
-                <div className="text-[9rem]">🎨</div>
-                <p className="text-white/60 text-[2.5rem] font-medium">
+                <div className="text-[6.3rem]">🎨</div>
+                <p className="text-white/60 text-[1.75rem] font-medium">
                   Immagine CTA evento<br />
-                  <span className="text-[2rem] opacity-60">(placeholder — da sostituire con asset HERA)</span>
+                  <span className="text-[1.4rem] opacity-60">(placeholder — da sostituire con asset HERA)</span>
                 </p>
               </div>
             </div>
@@ -852,18 +852,18 @@ export default function TotemPage() {
           {/* Zona touch: headline + unico CTA */}
           <TouchZone className="gap-14">
             <div className="space-y-6 text-center">
-              <h1 className="text-[9rem] font-black tracking-tight leading-none text-white drop-shadow-lg">
+              <h1 className="text-[6.3rem] font-black tracking-tight leading-none text-white drop-shadow-lg">
                 LA TUA ARMOCROMIA<br />
                 <span className="text-white/90">HERAVIGLIOSA</span>
               </h1>
-              <p className="text-5xl text-white/80 leading-relaxed max-w-[680px] mx-auto">
+              <p className="text-[1.47rem] text-white/80 leading-relaxed max-w-[680px] mx-auto">
                 Scopri il tuo profilo armocromatico attraverso le tue scelte quotidiane
               </p>
             </div>
 
             <button
               onClick={() => setScreen("age_selection")}
-              className="text-6xl font-black px-20 py-7 rounded-full text-white shadow-2xl active:scale-95 transition-transform border-4 border-white/90"
+              className="text-[1.8375rem] font-black px-20 py-7 rounded-full text-white shadow-2xl active:scale-95 transition-transform border-4 border-white/90"
               style={{ background: BTN.primary }}
             >
               PARTECIPA
@@ -879,10 +879,10 @@ export default function TotemPage() {
         <div className="h-[1920px] w-full flex flex-col">
           <TopZone>
             <HeraLogo className="h-14 w-auto" />
-            <h2 className="text-[7.5rem] font-black text-foreground tracking-tight">
+            <h2 className="text-[5.25rem] font-black text-foreground tracking-tight">
               Quanti anni hai?
             </h2>
-            <p className="text-5xl text-muted-foreground">
+            <p className="text-[1.47rem] text-muted-foreground">
               Scegli la tua fascia generazionale
             </p>
           </TopZone>
@@ -894,10 +894,10 @@ export default function TotemPage() {
                 className="flex items-center gap-8 py-12 px-12 rounded-3xl border-4 border-transparent hover:border-primary transition-all active:scale-[0.99] shadow-xl text-left"
                 style={{ background: `${BTN.neutral}18` }}
               >
-                <span className="text-[9rem] shrink-0">✨</span>
+                <span className="text-[6.3rem] shrink-0">✨</span>
                 <div className="space-y-2">
-                  <p className="text-7xl font-black text-foreground">Millennial & Gen Z</p>
-                  <p className="text-[2.5rem] text-muted-foreground font-semibold">nati dal 1982 a oggi</p>
+                  <p className="text-[2.205rem] font-black text-foreground">Millennial & Gen Z</p>
+                  <p className="text-[1.75rem] text-muted-foreground font-semibold">nati dal 1982 a oggi</p>
                 </div>
               </button>
 
@@ -906,10 +906,10 @@ export default function TotemPage() {
                 className="flex items-center gap-8 py-12 px-12 rounded-3xl border-4 border-transparent hover:border-primary transition-all active:scale-[0.99] shadow-xl text-left"
                 style={{ background: `${BTN.neutral}18` }}
               >
-                <span className="text-[9rem] shrink-0">🌟</span>
+                <span className="text-[6.3rem] shrink-0">🌟</span>
                 <div className="space-y-2">
-                  <p className="text-7xl font-black text-foreground">Gen X & Boomer</p>
-                  <p className="text-[2.5rem] text-muted-foreground font-semibold">nati fino al 1981</p>
+                  <p className="text-[2.205rem] font-black text-foreground">Gen X & Boomer</p>
+                  <p className="text-[1.75rem] text-muted-foreground font-semibold">nati fino al 1981</p>
                 </div>
               </button>
             </div>
@@ -925,13 +925,13 @@ export default function TotemPage() {
           <TopZone>
             <HeraLogo className="h-14 w-auto" />
             <div className="w-full max-w-[780px] bg-red-50 border-2 border-red-400 rounded-2xl px-8 py-4 flex items-center gap-4 text-left">
-              <span className="text-red-500 text-5xl shrink-0">⚠️</span>
-              <p className="text-red-600 font-bold text-[2rem]">
+              <span className="text-red-500 text-[1.47rem] shrink-0">⚠️</span>
+              <p className="text-red-600 font-bold text-[1.4rem]">
                 FORM TEMPORANEO — verrà integrato con Suitalk prima del go-live
               </p>
             </div>
-            <h2 className="text-8xl font-black text-foreground tracking-tight">Registrati</h2>
-            <p className="text-[2.5rem] text-muted-foreground">Inserisci i tuoi dati per partecipare</p>
+            <h2 className="text-[2.94rem] font-black text-foreground tracking-tight">Registrati</h2>
+            <p className="text-[1.75rem] text-muted-foreground">Inserisci i tuoi dati per partecipare</p>
           </TopZone>
 
           <TouchZone className="items-stretch">
@@ -940,7 +940,7 @@ export default function TotemPage() {
               <div className="flex justify-end">
                 <button
                   onClick={toggleKioskKeyboard}
-                  className="flex items-center gap-2 text-[1.75rem] font-semibold px-5 py-2.5 rounded-full border-2 transition-colors"
+                  className="flex items-center gap-2 text-[1.225rem] font-semibold px-5 py-2.5 rounded-full border-2 transition-colors"
                   style={{ borderColor: BTN.neutral, color: BTN.neutral }}
                 >
                   ⌨️ {activeKioskField ? "Nascondi tastiera" : "Mostra tastiera"}
@@ -956,7 +956,7 @@ export default function TotemPage() {
                 ] as const
               ).map(({ field, label, placeholder, type }) => (
                 <div key={field} className="space-y-2">
-                  <label className="text-4xl font-semibold text-foreground">{label} *</label>
+                  <label className="text-[1.1025rem] font-semibold text-foreground">{label} *</label>
                   <input
                     type={type}
                     inputMode="none"
@@ -967,7 +967,7 @@ export default function TotemPage() {
                     onFocus={() => { setActiveKioskField(field); lastKioskFieldRef.current = field; }}
                     onBlur={() => setActiveKioskField((cur) => (cur === field ? null : cur))}
                     placeholder={placeholder}
-                    className={`w-full text-[2.5rem] px-6 py-4 rounded-2xl border-2 bg-card text-foreground placeholder-muted-foreground/40 outline-none transition-colors ${
+                    className={`w-full text-[1.75rem] px-6 py-4 rounded-2xl border-2 bg-card text-foreground placeholder-muted-foreground/40 outline-none transition-colors ${
                       activeKioskField === field ? "border-primary" : "border-border"
                     }`}
                   />
@@ -1009,9 +1009,9 @@ export default function TotemPage() {
                       className="w-8 h-8 rounded-lg shrink-0 mt-0.5 border-2 flex items-center justify-center transition-all"
                       style={{ borderColor: value ? HERA_COLORS.verde : "hsl(var(--border))", background: value ? HERA_COLORS.verde : "transparent" }}
                     >
-                      {value && <span className="text-white font-bold text-[1.75rem]">✓</span>}
+                      {value && <span className="text-white font-bold text-[1.225rem]">✓</span>}
                     </div>
-                    <span className="text-4xl text-foreground/80 leading-snug">
+                    <span className="text-[1.1025rem] text-foreground/80 leading-snug">
                       {label}
                       {required ? (
                         <span className="text-destructive ml-1">*</span>
@@ -1024,26 +1024,26 @@ export default function TotemPage() {
               </div>
 
               {formError && (
-                <p className="text-destructive text-4xl font-semibold text-center">{formError}</p>
+                <p className="text-destructive text-[1.1025rem] font-semibold text-center">{formError}</p>
               )}
 
               <button
                 onClick={handleFormSubmit}
                 disabled={formLoading}
-                className="w-full text-5xl font-black py-6 rounded-full text-white transition-all active:scale-[0.98] shadow-lg disabled:opacity-50"
+                className="w-full text-[1.47rem] font-black py-6 rounded-full text-white transition-all active:scale-[0.98] shadow-lg disabled:opacity-50"
                 style={{ background: BTN.primary }}
               >
                 {formLoading ? "Salvataggio..." : "AVANTI →"}
               </button>
 
-              <p className="text-center text-muted-foreground/60 text-[2rem]">
+              <p className="text-center text-muted-foreground/60 text-[1.4rem]">
                 * campi obbligatori
               </p>
 
               {/* Strumento di test — riempie il form con dati fake, mai salvati nel db ufficiale */}
               <button
                 onClick={fillFakeTestData}
-                className="w-full text-4xl font-bold py-4 rounded-full text-white active:scale-[0.98] transition-transform"
+                className="w-full text-[1.1025rem] font-bold py-4 rounded-full text-white active:scale-[0.98] transition-transform"
                 style={{ background: BTN.neutral }}
               >
                 🧪 COMPILA (dati di test, non salvati)
@@ -1065,27 +1065,27 @@ export default function TotemPage() {
             <HeraLogo className="h-14 w-auto" />
             {selfieStep === "idle" && (
               <>
-                <h2 className="text-8xl font-black text-foreground">Scatta la tua foto</h2>
-                <p className="text-5xl text-muted-foreground leading-relaxed max-w-[700px]">
+                <h2 className="text-[2.94rem] font-black text-foreground">Scatta la tua foto</h2>
+                <p className="text-[1.47rem] text-muted-foreground leading-relaxed max-w-[700px]">
                   {userName ? `Ciao ${userName.split(" ")[0]}! ` : ""}Il tuo ritratto entrerà nel gradiente personale.
                 </p>
-                <p className="text-4xl text-muted-foreground/70">Hai fino a {MAX_SELFIE_ATTEMPTS} scatti a disposizione</p>
-                {selfieError && <p className="text-4xl text-destructive font-medium">{selfieError}</p>}
+                <p className="text-[1.1025rem] text-muted-foreground/70">Hai fino a {MAX_SELFIE_ATTEMPTS} scatti a disposizione</p>
+                {selfieError && <p className="text-[1.1025rem] text-destructive font-medium">{selfieError}</p>}
               </>
             )}
             {selfieStep === "capturing" && (
               <>
-                <h2 className="text-8xl font-black text-foreground">Mettiti in posa!</h2>
-                <p className="text-[2.5rem] text-muted-foreground">Centra il viso nel cerchio e premi scatta</p>
-                <p className="text-4xl text-muted-foreground/70">
+                <h2 className="text-[2.94rem] font-black text-foreground">Mettiti in posa!</h2>
+                <p className="text-[1.75rem] text-muted-foreground">Centra il viso nel cerchio e premi scatta</p>
+                <p className="text-[1.1025rem] text-muted-foreground/70">
                   Scatto {selfieAttempts + 1} di {MAX_SELFIE_ATTEMPTS}
                 </p>
               </>
             )}
             {selfieStep === "preview" && (
               <>
-                <h2 className="text-8xl font-black text-foreground">Ti piace?</h2>
-                <p className="text-[2.5rem] text-muted-foreground">
+                <h2 className="text-[2.94rem] font-black text-foreground">Ti piace?</h2>
+                <p className="text-[1.75rem] text-muted-foreground">
                   {selfieAttempts < MAX_SELFIE_ATTEMPTS
                     ? "Se sei soddisfatto/a, procedi al quiz"
                     : "Nessun tentativo rimasto — si procede con questo scatto"}
@@ -1099,19 +1099,19 @@ export default function TotemPage() {
               <div className="flex flex-col items-center gap-5 w-full">
                 <button
                   onClick={startCamera}
-                  className="flex items-center gap-4 text-5xl font-bold px-14 py-6 rounded-full text-white shadow-lg active:scale-95 transition-transform"
+                  className="flex items-center gap-4 text-[1.47rem] font-bold px-14 py-6 rounded-full text-white shadow-lg active:scale-95 transition-transform"
                   style={{ background: BTN.primary }}
                 >
                   SCATTA FOTO
                 </button>
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="flex items-center gap-4 text-[2.5rem] font-semibold px-12 py-5 rounded-full border-2 transition-colors"
+                  className="flex items-center gap-4 text-[1.75rem] font-semibold px-12 py-5 rounded-full border-2 transition-colors"
                   style={{ borderColor: BTN.neutral, color: BTN.neutral }}
                 >
                   🖼️ CARICA UNA FOTO
                 </button>
-                <button onClick={skipSelfie} className="text-[2.5rem] py-4 px-8 text-muted-foreground underline mt-2">
+                <button onClick={skipSelfie} className="text-[1.75rem] py-4 px-8 text-muted-foreground underline mt-2">
                   Salta questo passaggio
                 </button>
               </div>
@@ -1130,12 +1130,12 @@ export default function TotemPage() {
                   <button
                     onClick={startShutterCountdown}
                     disabled={shutterCountdown !== null}
-                    className="w-24 h-24 rounded-full text-white text-8xl flex items-center justify-center shadow-xl active:scale-95 transition-transform disabled:opacity-50"
+                    className="w-24 h-24 rounded-full text-white text-[2.94rem] flex items-center justify-center shadow-xl active:scale-95 transition-transform disabled:opacity-50"
                     style={{ background: BTN.primary }}
                   >
                     📸
                   </button>
-                  <button onClick={() => { stopCamera(); setSelfieStep("idle"); }} className="text-[2.5rem] py-4 px-8 text-muted-foreground underline">
+                  <button onClick={() => { stopCamera(); setSelfieStep("idle"); }} className="text-[1.75rem] py-4 px-8 text-muted-foreground underline">
                     Annulla
                   </button>
                 </div>
@@ -1157,7 +1157,7 @@ export default function TotemPage() {
                 <div className="flex flex-col items-center gap-4">
                   <button
                     onClick={confirmSelfie}
-                    className="text-5xl font-bold px-14 py-6 rounded-full text-white shadow-lg active:scale-95 transition-transform"
+                    className="text-[1.47rem] font-bold px-14 py-6 rounded-full text-white shadow-lg active:scale-95 transition-transform"
                     style={{ background: BTN.success }}
                   >
                     ✓ OTTIMA! PROCEDI
@@ -1165,7 +1165,7 @@ export default function TotemPage() {
                   {selfieAttempts < MAX_SELFIE_ATTEMPTS && (
                     <button
                       onClick={retrySelfie}
-                      className="text-[2.5rem] font-semibold px-10 py-4 rounded-full border-2 transition-colors"
+                      className="text-[1.75rem] font-semibold px-10 py-4 rounded-full border-2 transition-colors"
                       style={{ borderColor: BTN.neutral, color: BTN.neutral }}
                     >
                       Riprova ({MAX_SELFIE_ATTEMPTS - selfieAttempts} rimasti)
@@ -1181,7 +1181,7 @@ export default function TotemPage() {
           {/* Countdown scatto — overlay fullscreen, 5-4-3-2-1-cheese */}
           {shutterCountdown !== null && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
-              <span className="text-white font-black" style={{ fontSize: shutterCountdown === 0 ? "5rem" : "13rem" }}>
+              <span className="text-white font-black" style={{ fontSize: shutterCountdown === 0 ? "3.5rem" : "9.1rem" }}>
                 {shutterCountdown === 0 ? "📸 CHEESE!" : shutterCountdown}
               </span>
             </div>
@@ -1195,7 +1195,7 @@ export default function TotemPage() {
           <TopZone>
             <HeraLogo className="h-14 w-auto" />
             <div className="w-full max-w-[820px] space-y-3">
-              <p className="text-4xl font-semibold text-muted-foreground uppercase tracking-widest">
+              <p className="text-[1.1025rem] font-semibold text-muted-foreground uppercase tracking-widest">
                 Domanda {currentQuestionIndex + 1} di {questions.length}
               </p>
               <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
@@ -1212,7 +1212,7 @@ export default function TotemPage() {
 
           <TouchZone>
             <div className="w-full max-w-[820px] space-y-10">
-              <h3 className="text-6xl font-black text-foreground leading-snug text-center">
+              <h3 className="text-[1.8375rem] font-black text-foreground leading-snug text-center">
                 {currentQuestion.question_text}
               </h3>
 
@@ -1233,12 +1233,12 @@ export default function TotemPage() {
                           : "border-border bg-card"
                       } ${autoAdvancing ? "pointer-events-none" : ""}`}
                     >
-                      <span className="text-8xl shrink-0">{icon}</span>
-                      <span className={`text-5xl font-semibold leading-snug ${isSelected ? "text-primary" : "text-foreground"}`}>
+                      <span className="text-[2.94rem] shrink-0">{icon}</span>
+                      <span className={`text-[1.47rem] font-semibold leading-snug ${isSelected ? "text-primary" : "text-foreground"}`}>
                         {text}
                       </span>
                       {isSelected && (
-                        <span className="ml-auto text-primary text-6xl shrink-0">✓</span>
+                        <span className="ml-auto text-primary text-[1.8375rem] shrink-0">✓</span>
                       )}
                     </button>
                   );
@@ -1253,7 +1253,7 @@ export default function TotemPage() {
                       questions.forEach((q) => { autoAnswers[q.id] = "a"; });
                       submitQuizWithAnswers(autoAnswers);
                     }}
-                    className="text-[1.5rem] text-muted-foreground/40 underline underline-offset-2"
+                    className="text-[1.05rem] text-muted-foreground/40 underline underline-offset-2"
                   >
                     [dev] auto-rispondi tutto
                   </button>
@@ -1270,8 +1270,8 @@ export default function TotemPage() {
       {screen === "calculating" && (
         <div className="flex-1 flex flex-col items-center justify-center gap-8">
           <div className="w-32 h-32 rounded-full border-4 border-muted border-t-primary mx-auto animate-spin" />
-          <p className="text-6xl font-bold text-foreground">Stiamo elaborando il tuo profilo...</p>
-          <p className="text-[2.5rem] text-muted-foreground">Il tuo gradiente è unico e irripetibile</p>
+          <p className="text-[1.8375rem] font-bold text-foreground">Stiamo elaborando il tuo profilo...</p>
+          <p className="text-[1.75rem] text-muted-foreground">Il tuo gradiente è unico e irripetibile</p>
         </div>
       )}
 
@@ -1290,7 +1290,7 @@ export default function TotemPage() {
 
           <TopZone>
             <HeraLogo className="h-14 w-auto" />
-            <p className="text-[2.5rem] font-semibold text-muted-foreground uppercase tracking-widest">
+            <p className="text-[1.75rem] font-semibold text-muted-foreground uppercase tracking-widest">
               IL TUO GRADIENTE HERA
             </p>
           </TopZone>
@@ -1305,7 +1305,7 @@ export default function TotemPage() {
                 {selfieProcessing ? (
                   <div className="flex flex-col items-center gap-3">
                     <div className="w-12 h-12 rounded-full border-4 border-white/40 border-t-white animate-spin" />
-                    <span className="text-white/80 text-[1.5rem] font-medium">elaborazione...</span>
+                    <span className="text-white/80 text-[1.05rem] font-medium">elaborazione...</span>
                   </div>
                 ) : selfieDataUrl ? (
                   <img src={selfieDataUrl} alt="Profilo" className="w-full h-full object-cover" />
@@ -1317,11 +1317,11 @@ export default function TotemPage() {
 
             {/* Nome profilo */}
             <div className="text-center space-y-2">
-              <h2 className="text-8xl font-black text-foreground tracking-tight leading-none">
+              <h2 className="text-[2.94rem] font-black text-foreground tracking-tight leading-none">
                 {profile?.name || result.profile_key.toUpperCase()}
               </h2>
               {profile?.claim && (
-                <p className="text-[2.5rem] text-foreground/70 italic max-w-[680px] mx-auto">
+                <p className="text-[1.75rem] text-foreground/70 italic max-w-[680px] mx-auto">
                   {profile.claim}
                 </p>
               )}
@@ -1341,20 +1341,20 @@ export default function TotemPage() {
                 return (
                   <div key={key} className="flex flex-col items-center gap-2">
                     <div
-                      className="rounded-full flex items-center justify-center text-6xl"
+                      className="rounded-full flex items-center justify-center text-[1.8375rem]"
                       style={{ width: 64, height: 64, backgroundColor: cat.color + "22", border: `3px solid ${cat.color}` }}
                     >
                       {cat.icon}
                     </div>
-                    <span className="text-[2.5rem] font-black" style={{ color: cat.color }}>{score}</span>
-                    <span className="text-[1.75rem] text-muted-foreground font-semibold uppercase tracking-wider">{cat.label}</span>
+                    <span className="text-[1.75rem] font-black" style={{ color: cat.color }}>{score}</span>
+                    <span className="text-[1.225rem] text-muted-foreground font-semibold uppercase tracking-wider">{cat.label}</span>
                   </div>
                 );
               })}
             </div>
 
             {profile?.description && (
-              <p className="text-4xl text-muted-foreground max-w-[680px] mx-auto text-center leading-relaxed">
+              <p className="text-[1.1025rem] text-muted-foreground max-w-[680px] mx-auto text-center leading-relaxed">
                 {profile.description}
               </p>
             )}
@@ -1364,7 +1364,7 @@ export default function TotemPage() {
               {result.code && (
                 <button
                   onClick={() => setScreen("prize")}
-                  className="w-full flex items-center justify-center gap-4 text-5xl font-bold px-12 py-6 rounded-full text-white transition-transform active:scale-95 shadow-xl"
+                  className="w-full flex items-center justify-center gap-4 text-[1.47rem] font-bold px-12 py-6 rounded-full text-white transition-transform active:scale-95 shadow-xl"
                   style={{ background: BTN.primary }}
                 >
                   🏆 SCOPRI SE HAI VINTO UN PREMIO
@@ -1373,13 +1373,13 @@ export default function TotemPage() {
 
               {postcardUrl && (
                 <div className="w-full flex flex-col items-center gap-4 py-2">
-                  <p className="text-[2.5rem] font-bold text-foreground tracking-wide text-center">
+                  <p className="text-[1.75rem] font-bold text-foreground tracking-wide text-center">
                     Scarica la tua postcard
                   </p>
                   {postcardQrUrl ? (
                     <>
                       <img src={postcardQrUrl} alt="QR Code postcard" className="w-44 h-44 rounded-2xl shadow-lg" />
-                      <p className="text-[2rem] text-muted-foreground text-center">
+                      <p className="text-[1.4rem] text-muted-foreground text-center">
                         Inquadra il QR con il tuo smartphone
                       </p>
                     </>
@@ -1390,11 +1390,11 @@ export default function TotemPage() {
                   <div className="relative group">
                     <button
                       disabled
-                      className="flex items-center gap-3 text-4xl font-semibold px-8 py-3 rounded-full border-2 border-muted-foreground/30 text-muted-foreground/50 cursor-not-allowed"
+                      className="flex items-center gap-3 text-[1.1025rem] font-semibold px-8 py-3 rounded-full border-2 border-muted-foreground/30 text-muted-foreground/50 cursor-not-allowed"
                     >
                       ✉️ Invia per email
                     </button>
-                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 hidden group-hover:block bg-foreground text-background text-[1.75rem] rounded-xl px-4 py-3 w-64 text-center shadow-xl z-10">
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 hidden group-hover:block bg-foreground text-background text-[1.225rem] rounded-xl px-4 py-3 w-64 text-center shadow-xl z-10">
                       Funzione in arrivo — richiede configurazione del servizio email
                     </div>
                   </div>
@@ -1402,7 +1402,7 @@ export default function TotemPage() {
                   {process.env.NODE_ENV === "development" && (
                     <button
                       onClick={() => downloadPostcard(postcardUrl)}
-                      className="text-[1.75rem] text-muted-foreground/40 underline underline-offset-2"
+                      className="text-[1.225rem] text-muted-foreground/40 underline underline-offset-2"
                     >
                       [dev] download diretto
                     </button>
@@ -1413,7 +1413,7 @@ export default function TotemPage() {
               {!result.code && (
                 <button
                   onClick={handleRestart}
-                  className="text-[2.5rem] font-semibold px-10 py-4 text-muted-foreground underline"
+                  className="text-[1.75rem] font-semibold px-10 py-4 text-muted-foreground underline"
                 >
                   Ricomincia
                 </button>
@@ -1447,12 +1447,12 @@ export default function TotemPage() {
                   </linearGradient>
                 </defs>
               </svg>
-              <span className="absolute text-6xl font-black text-foreground">{prizeCountdown}</span>
+              <span className="absolute text-[1.8375rem] font-black text-foreground">{prizeCountdown}</span>
             </div>
-            <p className="text-muted-foreground text-[2rem] -mt-2">secondi al reset</p>
+            <p className="text-muted-foreground text-[1.4rem] -mt-2">secondi al reset</p>
 
             <h2
-              className="text-[9rem] font-black tracking-tight bg-clip-text text-transparent"
+              className="text-[6.3rem] font-black tracking-tight bg-clip-text text-transparent"
               style={{ backgroundImage: `linear-gradient(135deg, ${HERA_COLORS.verde}, ${HERA_COLORS.ciano}, ${HERA_COLORS.magenta})` }}
             >
               HAI VINTO!
@@ -1461,21 +1461,21 @@ export default function TotemPage() {
 
           <TouchZone className="gap-10">
             <div className="space-y-6 text-center">
-              <p className="text-5xl text-foreground font-bold">
+              <p className="text-[1.47rem] text-foreground font-bold">
                 Complimenti! Hai ottenuto un premio.
               </p>
               <div
                 className="rounded-3xl px-10 py-7 inline-block"
                 style={{ background: `linear-gradient(135deg, ${HERA_COLORS.verde}22, ${HERA_COLORS.ciano}22)` }}
               >
-                <p className="text-[2.5rem] text-foreground/80 leading-relaxed">
+                <p className="text-[1.75rem] text-foreground/80 leading-relaxed">
                   📩 Riceverai una mail all'indirizzo che hai indicato<br />
                   con le <strong>istruzioni per il ritiro del premio</strong>.
                 </p>
               </div>
 
               {result.prize?.name && (
-                <p className="text-[2.5rem] text-muted-foreground">
+                <p className="text-[1.75rem] text-muted-foreground">
                   Premio: <strong>{result.prize.name}</strong>
                 </p>
               )}
@@ -1483,7 +1483,7 @@ export default function TotemPage() {
 
             <button
               onClick={handleRestart}
-              className="text-5xl font-black px-16 py-6 rounded-full text-white shadow-xl active:scale-95 transition-transform"
+              className="text-[1.47rem] font-black px-16 py-6 rounded-full text-white shadow-xl active:scale-95 transition-transform"
               style={{ background: BTN.destructive }}
             >
               🔄 RICOMINCIA

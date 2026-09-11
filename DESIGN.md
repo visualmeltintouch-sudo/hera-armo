@@ -17,12 +17,12 @@ colors:
 typography:
   display:
     fontFamily: "Circular Std, Geist, Arial, sans-serif"
-    fontSize: "clamp(5rem, 12vw, 9rem)"
+    fontSize: "clamp(3.5rem, 8.4vw, 6.3rem)"
     fontWeight: 700
     lineHeight: 1.05
   body:
     fontFamily: "Circular Std, Geist, Arial, sans-serif"
-    fontSize: "2.5rem"
+    fontSize: "1.75rem"
     fontWeight: 400
     lineHeight: 1.5
 rounded:
@@ -63,7 +63,7 @@ This is a deliberate rejection of the earlier build, which painted a faint tri-c
 - The three HERA hues also appear in the intro hero background and the final result gradient — those remain non-interactive, decorative reveals, distinct from the semantic button colors above.
 - Answers are icon + label cards, not lettered "A/B" choices — every option reads as a concrete thing, not an abstract slot
 - Circular Std as the display and body voice everywhere; Geist is the silent fallback
-- **Type scale doubled (2026-09-11):** the totem runs on a 55" screen viewed from a few steps away — every text size across the visitor flow was doubled from the original scale below for legibility at that distance.
+- **Type scale ×1.4 (2026-09-11, revised same day):** the totem runs on a 55" screen viewed from a few steps away, so text was first doubled from the original scale, then pulled back 30% after that read as too large — net effect vs. the original scale below is ×1.4.
 
 ## Colors
 
@@ -99,12 +99,12 @@ Restrained strategy: neutrals carry the whole surface, one committed accent (HER
 
 **Character:** Rounded, geometric, friendly without being juvenile — a single humanist grotesque voice carries both the punchy Gen-Z intro copy and the plainer institutional classic-tone copy, so age-group content differs in words, never in typeface.
 
-### Hierarchy (doubled scale, 2026-09-11 — 55" kiosk viewing distance)
-- **Display** (700, clamp(5rem, 12vw, 9rem), 1.05): intro headline "LA TUA ARMOCROMIA HERAVIGLIOSA", result profile name.
-- **Headline** (700, 6rem, 1.1): birth-year prompt, "HAI VINTO!", question text.
-- **Title** (600, 3rem, 1.3): section labels, progress counter.
-- **Body** (400, 2.5rem, 1.5): supporting copy, profile description, answer card labels.
-- **Label** (500, 1.75rem, uppercase optional): muted micro-copy (progress "Domanda X di Y", footer hints).
+### Hierarchy (×1.4 scale, 2026-09-11 — 55" kiosk viewing distance)
+- **Display** (700, clamp(3.5rem, 8.4vw, 6.3rem), 1.05): intro headline "LA TUA ARMOCROMIA HERAVIGLIOSA", result profile name.
+- **Headline** (700, 4.2rem, 1.1): birth-year prompt, "HAI VINTO!", question text.
+- **Title** (600, 2.1rem, 1.3): section labels, progress counter.
+- **Body** (400, 1.75rem, 1.5): supporting copy, profile description, answer card labels.
+- **Label** (500, 1.225rem, uppercase optional): muted micro-copy (progress "Domanda X di Y", footer hints).
 
 ## Layout
 

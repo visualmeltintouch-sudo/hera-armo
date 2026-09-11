@@ -34,7 +34,7 @@ function Key({
       type="button"
       onMouseDown={(e) => e.preventDefault()}
       onClick={onPress}
-      className={`h-[124px] ${wide ? "w-[144px] shrink-0" : "flex-1"} rounded-3xl text-[2.25rem] font-semibold transition-transform active:scale-90 select-none ${
+      className={`h-[124px] ${wide ? "w-[144px] shrink-0" : "flex-1"} rounded-3xl text-[1.575rem] font-semibold transition-transform active:scale-90 select-none ${
         active ? "bg-primary text-white" : "bg-muted text-foreground"
       }`}
     >
@@ -96,14 +96,14 @@ export function KioskKeyboard({
     >
       <div className="w-full max-w-[1080px] bg-card rounded-t-[48px] shadow-2xl px-8 pt-6 pb-10">
         <div className="flex items-center justify-between mb-4 px-2">
-          <p className="text-[2rem] font-semibold uppercase tracking-widest text-muted-foreground">
+          <p className="text-[1.4rem] font-semibold uppercase tracking-widest text-muted-foreground">
             {label}
           </p>
           <button
             type="button"
             onMouseDown={(e) => e.preventDefault()}
             onClick={close}
-            className="text-[2rem] font-bold text-primary px-8 py-3 rounded-full border-2 border-primary"
+            className="text-[1.4rem] font-bold text-primary px-8 py-3 rounded-full border-2 border-primary"
           >
             Fine
           </button>
@@ -131,7 +131,7 @@ export function KioskKeyboard({
               type="button"
               onMouseDown={(e) => e.preventDefault()}
               onClick={space}
-              className="flex-[3] h-[124px] rounded-3xl bg-muted text-foreground font-semibold text-[2.25rem] select-none active:scale-[0.98] transition-transform"
+              className="flex-[3] h-[124px] rounded-3xl bg-muted text-foreground font-semibold text-[1.575rem] select-none active:scale-[0.98] transition-transform"
             >
               spazio
             </button>
