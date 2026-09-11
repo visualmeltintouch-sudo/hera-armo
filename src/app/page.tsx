@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { scoresToGradient } from "@/lib/gradient";
 import { generatePostcard, downloadPostcard } from "@/lib/postcard";
 import { HERA_COLORS } from "@/lib/constants";
+import { KioskKeyboard } from "@/components/kiosk/KioskKeyboard";
 import type {
   ArmoEvent,
   ArmoSettings,
@@ -30,6 +31,37 @@ type Screen =
 
 type SelfieStep = "idle" | "capturing" | "preview";
 type AgeGroup = "young" | "classic";
+type KioskField = "nome" | "cognome" | "email" | "telefono";
+
+// Kiosk 1080x1920 — vincoli d'uso: la fascia 0-450px dall'alto è scomoda da
+// raggiungere e non deve contenere nulla di cliccabile; gli ultimi 200px in
+// basso restano vuoti (margine di comfort). Ogni elemento touch vive nella
+// TouchZone, che assorbe lo spazio restante.
+const TOP_SAFE = 450;
+const BOTTOM_SAFE = 200;
+
+function TopZone({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      className="shrink-0 w-full flex flex-col items-center justify-center gap-5 px-16 text-center"
+      style={{ minHeight: TOP_SAFE }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function TouchZone({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  return (
+    <div className={`flex-1 w-full flex flex-col items-center justify-center px-16 ${className}`}>
+      {children}
+    </div>
+  );
+}
+
+function BottomSafe() {
+  return <div className="shrink-0 w-full" style={{ minHeight: BOTTOM_SAFE }} />;
+}
 
 function HeraLogo({ className }: { className?: string }) {
   return (
@@ -50,6 +82,17 @@ const CATEGORY_ICONS: Record<string, { icon: string; label: string; color: strin
 
 const MEDIAPIPE_CDN = "https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation";
 const FACE_DETECTION_CDN = "https://cdn.jsdelivr.net/npm/@mediapipe/face_detection";
+
+// Dati fake per il tasto "COMPILA" — solo per velocizzare i test, mai salvati
+// nel db ufficiale. Domini .invalid/.example sono riservati IANA (RFC 2606):
+// non risolvono e non possono appartenere a nessuno davvero.
+const FAKE_FIRST_NAMES = ["Luca", "Giulia", "Marco", "Sara", "Davide", "Chiara", "Simone", "Elena", "Andrea", "Francesca", "Matteo", "Alice", "Riccardo", "Martina", "Federico"];
+const FAKE_LAST_NAMES = ["Bianchi", "Rossi", "Verdi", "Ferrari", "Romano", "Colombo", "Ricci", "Marino", "Greco", "Bruno", "Gallo", "Conti", "Costa", "Fontana"];
+const FAKE_EMAIL_DOMAINS = ["mailtest.invalid", "fakemail.test", "noexist.example", "provaqa.invalid"];
+
+function randomFrom<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
 
 export default function TotemPage() {
   const supabase = createClient();
@@ -73,6 +116,14 @@ export default function TotemPage() {
   const [consenso3, setConsenso3] = useState(false);
   const [formError, setFormError] = useState("");
   const [formLoading, setFormLoading] = useState(false);
+  // true quando i campi sono stati riempiti dal tasto "COMPILA" — in quel caso
+  // non salviamo il partecipante nel db ufficiale. Torna false se l'utente
+  // modifica un campo a mano dopo aver premuto COMPILA.
+  const [isFakeTestData, setIsFakeTestData] = useState(false);
+
+  // Tastiera kiosk — attiva solo sul campo attualmente a fuoco
+  const [activeKioskField, setActiveKioskField] = useState<KioskField | null>(null);
+  const lastKioskFieldRef = useRef<KioskField>("nome");
 
   const [userName, setUserName] = useState("");
 
@@ -134,6 +185,42 @@ export default function TotemPage() {
       uploadPostcardAndQr(url, result.session_id);
     }).catch(() => {});
   }, [selfieDataUrl]);
+
+  // Campi collegati alla tastiera kiosk (solo dove servono testo: schermata form).
+  // Modificare un campo a mano invalida il flag "dati fake" — se l'utente
+  // interviene manualmente, il salvataggio nel db torna a essere normale.
+  const KIOSK_FIELDS: Record<KioskField, { value: string; set: (v: string) => void; variant: "text" | "email" | "tel"; label: string }> = {
+    nome:     { value: formNome,     set: (v) => { setFormNome(v);     setIsFakeTestData(false); }, variant: "text",  label: "Nome" },
+    cognome:  { value: formCognome,  set: (v) => { setFormCognome(v);  setIsFakeTestData(false); }, variant: "text",  label: "Cognome" },
+    email:    { value: formEmail,    set: (v) => { setFormEmail(v);    setIsFakeTestData(false); }, variant: "email", label: "Email" },
+    telefono: { value: formTelefono, set: (v) => { setFormTelefono(v); setIsFakeTestData(false); }, variant: "tel",   label: "Telefono" },
+  };
+
+  function closeKioskKeyboard() {
+    setActiveKioskField(null);
+  }
+
+  function toggleKioskKeyboard() {
+    setActiveKioskField((cur) => (cur ? null : lastKioskFieldRef.current));
+  }
+
+  // Riempie il form con dati fake per velocizzare i test — non viene mai
+  // salvato nel db ufficiale (vedi handleFormSubmit).
+  function fillFakeTestData() {
+    const first = randomFrom(FAKE_FIRST_NAMES);
+    const last = randomFrom(FAKE_LAST_NAMES);
+    const domain = randomFrom(FAKE_EMAIL_DOMAINS);
+    const handle = `${first}.${last}${Math.floor(Math.random() * 900 + 100)}`.toLowerCase();
+    const phone = `+39 3${Math.floor(Math.random() * 90 + 10)} ${Math.floor(Math.random() * 9000000 + 1000000)}`;
+
+    setFormNome(first);
+    setFormCognome(last);
+    setFormEmail(`${handle}@${domain}`);
+    setFormTelefono(phone);
+    setIsFakeTestData(true);
+    setFormError("");
+    closeKioskKeyboard();
+  }
 
   async function loadEvent() {
     const { data: events } = await supabase
@@ -206,25 +293,29 @@ export default function TotemPage() {
     }
     setFormLoading(true);
     setFormError("");
+    closeKioskKeyboard();
 
     const fullName = `${formNome.trim()} ${formCognome.trim()}`;
     setUserName(fullName);
 
-    // Salva partecipante — best effort, non bloccante
-    try {
-      await supabase.from("hera_armo_participants").insert({
-        event_id: event!.id,
-        nome: formNome.trim(),
-        cognome: formCognome.trim(),
-        email: formEmail.trim(),
-        telefono: formTelefono.trim(),
-        age_group: ageGroup,
-        consenso_dati: consenso1,
-        consenso_marketing: consenso2,
-        consenso_profilazione: consenso3,
-      });
-    } catch {
-      // non bloccante
+    // Salva partecipante — best effort, non bloccante. I dati generati dal
+    // tasto "COMPILA" non vengono mai scritti nel db ufficiale.
+    if (!isFakeTestData) {
+      try {
+        await supabase.from("hera_armo_participants").insert({
+          event_id: event!.id,
+          nome: formNome.trim(),
+          cognome: formCognome.trim(),
+          email: formEmail.trim(),
+          telefono: formTelefono.trim(),
+          age_group: ageGroup,
+          consenso_dati: consenso1,
+          consenso_marketing: consenso2,
+          consenso_profilazione: consenso3,
+        });
+      } catch {
+        // non bloccante
+      }
     }
 
     setFormLoading(false);
@@ -637,6 +728,8 @@ export default function TotemPage() {
     setConsenso2(false);
     setConsenso3(false);
     setFormError("");
+    setIsFakeTestData(false);
+    setActiveKioskField(null);
     setUserName("");
     setQuestions([]);
     setSelectedAnswers({});
@@ -659,15 +752,13 @@ export default function TotemPage() {
   const gradient = scoresToGradient(finalScores);
   const currentQuestion = questions[currentQuestionIndex];
 
+  // Countdown premio come anello SVG (attesa resa informativa)
+  const RING_R = 54;
+  const RING_C = 2 * Math.PI * RING_R;
+  const ringOffset = RING_C * (1 - prizeCountdown / 20);
+
   return (
     <div className="w-[1080px] min-h-[1920px] mx-auto relative bg-background text-foreground flex flex-col">
-
-      {/* Header logo — nascosto su intro (fullscreen) e result/prize */}
-      {screen !== "intro" && screen !== "result" && screen !== "prize" && (
-        <header className="flex items-center justify-center pt-14 pb-8 shrink-0">
-          <HeraLogo className="h-16 w-auto" />
-        </header>
-      )}
 
       {/* ── LOADING ── */}
       {screen === "loading" && (
@@ -678,42 +769,45 @@ export default function TotemPage() {
 
       {/* ── ERROR ── */}
       {screen === "error" && (
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center space-y-8">
+        <div className="h-[1920px] w-full flex flex-col">
+          <TopZone>
             <p className="text-destructive text-2xl">{error}</p>
-            <button onClick={handleRestart} className="text-lg text-primary underline">Riprova</button>
-          </div>
+          </TopZone>
+          <TouchZone>
+            <button onClick={handleRestart} className="text-2xl font-bold text-primary underline underline-offset-4">
+              Riprova
+            </button>
+          </TouchZone>
+          <BottomSafe />
         </div>
       )}
 
       {/* ── INTRO — fullscreen CTA ── */}
       {screen === "intro" && (
         <div
-          className="w-full min-h-[1920px] flex flex-col items-center justify-between relative overflow-hidden"
+          className="w-full h-[1920px] flex flex-col relative overflow-hidden"
           style={{ background: `linear-gradient(160deg, ${HERA_COLORS.verde}dd, ${HERA_COLORS.ciano}cc, ${HERA_COLORS.magenta}dd)` }}
         >
-          {/* Logo in alto */}
-          <div className="pt-16 pb-0">
-            <HeraLogo className="h-20 w-auto brightness-0 invert" />
-          </div>
-
-          {/* Contenuto centrale */}
-          <div className="flex-1 flex flex-col items-center justify-center px-16 gap-14 text-center">
-            {/* Placeholder immagine CTA */}
+          {/* Fascia alta (0-450px): logo + hero, nulla di cliccabile */}
+          <div className="shrink-0 flex flex-col items-center justify-center gap-10 px-16 pt-16 text-center" style={{ minHeight: TOP_SAFE }}>
+            <HeraLogo className="h-16 w-auto brightness-0 invert" />
             <div
-              className="w-[720px] h-[720px] rounded-3xl flex items-center justify-center"
+              className="w-[620px] h-[460px] rounded-3xl flex items-center justify-center"
               style={{ background: "rgba(255,255,255,0.12)", border: "2px dashed rgba(255,255,255,0.4)" }}
             >
               <div className="text-center space-y-4">
-                <div className="text-8xl">🎨</div>
-                <p className="text-white/60 text-2xl font-medium">
+                <div className="text-7xl">🎨</div>
+                <p className="text-white/60 text-xl font-medium">
                   Immagine CTA evento<br />
-                  <span className="text-lg opacity-60">(placeholder — da sostituire con asset HERA)</span>
+                  <span className="text-base opacity-60">(placeholder — da sostituire con asset HERA)</span>
                 </p>
               </div>
             </div>
+          </div>
 
-            <div className="space-y-6">
+          {/* Zona touch: headline + unico CTA */}
+          <TouchZone className="gap-14">
+            <div className="space-y-6 text-center">
               <h1 className="text-7xl font-black tracking-tight leading-none text-white drop-shadow-lg">
                 LA TUA ARMOCROMIA<br />
                 <span className="text-white/90">HERAVIGLIOSA</span>
@@ -725,226 +819,239 @@ export default function TotemPage() {
 
             <button
               onClick={() => setScreen("age_selection")}
-              className="text-3xl font-black px-20 py-7 rounded-full text-foreground bg-white shadow-2xl hover:scale-105 transition-transform"
+              className="text-3xl font-black px-20 py-7 rounded-full text-foreground bg-white shadow-2xl active:scale-95 transition-transform"
             >
               PARTECIPA
             </button>
-          </div>
+          </TouchZone>
 
-          {/* Footer */}
-          <div className="pb-16">
-            <p className="text-white/50 text-lg">Tocca per iniziare</p>
-          </div>
+          <BottomSafe />
         </div>
       )}
 
-      {/* ── AGE SELECTION ── */}
+      {/* ── AGE SELECTION — single column, box impilati ── */}
       {screen === "age_selection" && (
-        <div className="flex-1 flex flex-col items-center justify-center px-16 pb-16 gap-16">
-          <div className="text-center space-y-4">
+        <div className="h-[1920px] w-full flex flex-col">
+          <TopZone>
+            <HeraLogo className="h-14 w-auto" />
             <h2 className="text-6xl font-black text-foreground tracking-tight">
               Quanti anni hai?
             </h2>
             <p className="text-2xl text-muted-foreground">
               Scegli la tua fascia generazionale
             </p>
-          </div>
+          </TopZone>
 
-          <div className="flex gap-8 w-full max-w-[900px]">
-            {/* Box Millennial & Gen Z */}
-            <button
-              onClick={() => handleAgeSelect("young")}
-              className="flex-1 flex flex-col items-center gap-6 py-16 px-8 rounded-3xl border-4 border-transparent hover:border-primary transition-all hover:scale-[1.02] shadow-xl text-center group"
-              style={{ background: `linear-gradient(135deg, ${HERA_COLORS.verde}22, ${HERA_COLORS.ciano}22)` }}
-            >
-              <span className="text-8xl">✨</span>
-              <div className="space-y-3">
-                <p className="text-4xl font-black text-foreground">Millennial & Gen Z</p>
-                <p className="text-2xl text-muted-foreground font-semibold">nati dal 1982</p>
-                <p className="text-lg text-muted-foreground/70">(1982 – oggi)</p>
-              </div>
-            </button>
+          <TouchZone className="gap-8">
+            <div className="w-full max-w-[820px] flex flex-col gap-8">
+              <button
+                onClick={() => handleAgeSelect("young")}
+                className="flex items-center gap-8 py-12 px-12 rounded-3xl border-4 border-transparent hover:border-primary transition-all active:scale-[0.99] shadow-xl text-left"
+                style={{ background: `linear-gradient(135deg, ${HERA_COLORS.verde}22, ${HERA_COLORS.ciano}22)` }}
+              >
+                <span className="text-7xl shrink-0">✨</span>
+                <div className="space-y-2">
+                  <p className="text-4xl font-black text-foreground">Millennial & Gen Z</p>
+                  <p className="text-xl text-muted-foreground font-semibold">nati dal 1982 a oggi</p>
+                </div>
+              </button>
 
-            {/* Box Gen X & Boomer */}
-            <button
-              onClick={() => handleAgeSelect("classic")}
-              className="flex-1 flex flex-col items-center gap-6 py-16 px-8 rounded-3xl border-4 border-transparent hover:border-primary transition-all hover:scale-[1.02] shadow-xl text-center group"
-              style={{ background: `linear-gradient(135deg, ${HERA_COLORS.ciano}22, ${HERA_COLORS.magenta}22)` }}
-            >
-              <span className="text-8xl">🌟</span>
-              <div className="space-y-3">
-                <p className="text-4xl font-black text-foreground">Gen X & Boomer</p>
-                <p className="text-2xl text-muted-foreground font-semibold">nati prima del 1982</p>
-                <p className="text-lg text-muted-foreground/70">(fino al 1981)</p>
-              </div>
-            </button>
-          </div>
+              <button
+                onClick={() => handleAgeSelect("classic")}
+                className="flex items-center gap-8 py-12 px-12 rounded-3xl border-4 border-transparent hover:border-primary transition-all active:scale-[0.99] shadow-xl text-left"
+                style={{ background: `linear-gradient(135deg, ${HERA_COLORS.ciano}22, ${HERA_COLORS.magenta}22)` }}
+              >
+                <span className="text-7xl shrink-0">🌟</span>
+                <div className="space-y-2">
+                  <p className="text-4xl font-black text-foreground">Gen X & Boomer</p>
+                  <p className="text-xl text-muted-foreground font-semibold">nati fino al 1981</p>
+                </div>
+              </button>
+            </div>
+          </TouchZone>
+
+          <BottomSafe />
         </div>
       )}
 
-      {/* ── FORM ── */}
+      {/* ── FORM — single column, tastiera kiosk sui campi testo ── */}
       {screen === "form" && (
-        <div className="flex-1 flex flex-col items-center justify-center px-16 pb-16 gap-12 w-full">
-          {/* Banner temporaneo */}
-          <div className="w-full max-w-[780px] bg-red-50 border-2 border-red-400 rounded-2xl px-8 py-4 flex items-center gap-4">
-            <span className="text-red-500 text-3xl">⚠️</span>
-            <p className="text-red-600 font-bold text-lg">
-              FORM TEMPORANEO — verrà integrato con Suitalk prima del go-live
-            </p>
-          </div>
-
-          <div className="w-full max-w-[780px] space-y-6">
-            <div className="text-center space-y-3">
-              <h2 className="text-5xl font-black text-foreground tracking-tight">Registrati</h2>
-              <p className="text-xl text-muted-foreground">Inserisci i tuoi dati per partecipare</p>
+        <div className="h-[1920px] w-full flex flex-col">
+          <TopZone>
+            <HeraLogo className="h-14 w-auto" />
+            <div className="w-full max-w-[780px] bg-red-50 border-2 border-red-400 rounded-2xl px-8 py-4 flex items-center gap-4 text-left">
+              <span className="text-red-500 text-2xl shrink-0">⚠️</span>
+              <p className="text-red-600 font-bold text-base">
+                FORM TEMPORANEO — verrà integrato con Suitalk prima del go-live
+              </p>
             </div>
+            <h2 className="text-5xl font-black text-foreground tracking-tight">Registrati</h2>
+            <p className="text-xl text-muted-foreground">Inserisci i tuoi dati per partecipare</p>
+          </TopZone>
 
-            <div className="grid grid-cols-2 gap-5">
-              <div className="space-y-2">
-                <label className="text-lg font-semibold text-foreground">Nome *</label>
-                <input
-                  type="text"
-                  value={formNome}
-                  onChange={(e) => setFormNome(e.target.value)}
-                  placeholder="Mario"
-                  className="w-full text-xl px-6 py-4 rounded-2xl border-2 border-border bg-card text-foreground placeholder-muted-foreground/40 focus:border-primary outline-none transition-colors"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-lg font-semibold text-foreground">Cognome *</label>
-                <input
-                  type="text"
-                  value={formCognome}
-                  onChange={(e) => setFormCognome(e.target.value)}
-                  placeholder="Rossi"
-                  className="w-full text-xl px-6 py-4 rounded-2xl border-2 border-border bg-card text-foreground placeholder-muted-foreground/40 focus:border-primary outline-none transition-colors"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-lg font-semibold text-foreground">Email *</label>
-              <input
-                type="email"
-                inputMode="email"
-                value={formEmail}
-                onChange={(e) => setFormEmail(e.target.value)}
-                placeholder="mario.rossi@email.it"
-                className="w-full text-xl px-6 py-4 rounded-2xl border-2 border-border bg-card text-foreground placeholder-muted-foreground/40 focus:border-primary outline-none transition-colors"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-lg font-semibold text-foreground">Telefono *</label>
-              <input
-                type="tel"
-                inputMode="tel"
-                value={formTelefono}
-                onChange={(e) => setFormTelefono(e.target.value)}
-                placeholder="+39 333 1234567"
-                className="w-full text-xl px-6 py-4 rounded-2xl border-2 border-border bg-card text-foreground placeholder-muted-foreground/40 focus:border-primary outline-none transition-colors"
-              />
-            </div>
-
-            {/* Consensi */}
-            <div className="space-y-4 pt-2">
-              {[
-                {
-                  key: "c1",
-                  value: consenso1,
-                  setter: setConsenso1,
-                  label: "Acconsento al trattamento dei dati personali ai sensi dell'art. 13 del GDPR (EU 2016/679)",
-                  required: true,
-                },
-                {
-                  key: "c2",
-                  value: consenso2,
-                  setter: setConsenso2,
-                  label: "Acconsento alla ricezione di comunicazioni commerciali e promozionali da parte di HERA",
-                  required: false,
-                },
-                {
-                  key: "c3",
-                  value: consenso3,
-                  setter: setConsenso3,
-                  label: "Acconsento alla profilazione dei miei dati per finalità di marketing personalizzato",
-                  required: false,
-                },
-              ].map(({ key, value, setter, label, required }) => (
+          <TouchZone className="items-stretch">
+            <div className="w-full max-w-[780px] mx-auto space-y-5">
+              {/* Tasto manuale per richiamare/chiudere la tastiera kiosk a comando */}
+              <div className="flex justify-end">
                 <button
-                  key={key}
-                  onClick={() => setter(!value)}
-                  className="w-full flex items-start gap-5 text-left py-4 px-5 rounded-2xl border-2 transition-all"
-                  style={{ borderColor: value ? HERA_COLORS.verde : "hsl(var(--border))", background: value ? `${HERA_COLORS.verde}11` : "transparent" }}
+                  onClick={toggleKioskKeyboard}
+                  className="flex items-center gap-2 text-sm font-semibold px-5 py-2.5 rounded-full border-2 border-border text-foreground/70"
                 >
-                  <div
-                    className="w-8 h-8 rounded-lg shrink-0 mt-0.5 border-2 flex items-center justify-center transition-all"
-                    style={{ borderColor: value ? HERA_COLORS.verde : "hsl(var(--border))", background: value ? HERA_COLORS.verde : "transparent" }}
-                  >
-                    {value && <span className="text-white font-bold text-sm">✓</span>}
-                  </div>
-                  <span className="text-lg text-foreground/80 leading-snug">
-                    {label}
-                    {required ? (
-                      <span className="text-destructive ml-1">*</span>
-                    ) : (
-                      <span className="text-muted-foreground ml-1">(facoltativo)</span>
-                    )}
-                  </span>
+                  ⌨️ {activeKioskField ? "Nascondi tastiera" : "Mostra tastiera"}
                 </button>
+              </div>
+
+              {(
+                [
+                  { field: "nome" as KioskField, label: "Nome", placeholder: "Mario", type: "text" },
+                  { field: "cognome" as KioskField, label: "Cognome", placeholder: "Rossi", type: "text" },
+                  { field: "email" as KioskField, label: "Email", placeholder: "mario.rossi@email.it", type: "email" },
+                  { field: "telefono" as KioskField, label: "Telefono", placeholder: "+39 333 1234567", type: "tel" },
+                ] as const
+              ).map(({ field, label, placeholder, type }) => (
+                <div key={field} className="space-y-2">
+                  <label className="text-lg font-semibold text-foreground">{label} *</label>
+                  <input
+                    type={type}
+                    inputMode="none"
+                    autoComplete="off"
+                    spellCheck={false}
+                    value={KIOSK_FIELDS[field].value}
+                    onChange={(e) => KIOSK_FIELDS[field].set(e.target.value)}
+                    onFocus={() => { setActiveKioskField(field); lastKioskFieldRef.current = field; }}
+                    onBlur={() => setActiveKioskField((cur) => (cur === field ? null : cur))}
+                    placeholder={placeholder}
+                    className={`w-full text-xl px-6 py-4 rounded-2xl border-2 bg-card text-foreground placeholder-muted-foreground/40 outline-none transition-colors ${
+                      activeKioskField === field ? "border-primary" : "border-border"
+                    }`}
+                  />
+                </div>
               ))}
+
+              {/* Consensi */}
+              <div className="space-y-4 pt-2">
+                {[
+                  {
+                    key: "c1",
+                    value: consenso1,
+                    setter: setConsenso1,
+                    label: "Acconsento al trattamento dei dati personali ai sensi dell'art. 13 del GDPR (EU 2016/679)",
+                    required: true,
+                  },
+                  {
+                    key: "c2",
+                    value: consenso2,
+                    setter: setConsenso2,
+                    label: "Acconsento alla ricezione di comunicazioni commerciali e promozionali da parte di HERA",
+                    required: false,
+                  },
+                  {
+                    key: "c3",
+                    value: consenso3,
+                    setter: setConsenso3,
+                    label: "Acconsento alla profilazione dei miei dati per finalità di marketing personalizzato",
+                    required: false,
+                  },
+                ].map(({ key, value, setter, label, required }) => (
+                  <button
+                    key={key}
+                    onClick={() => setter(!value)}
+                    className="w-full flex items-start gap-5 text-left py-4 px-5 rounded-2xl border-2 transition-all"
+                    style={{ borderColor: value ? HERA_COLORS.verde : "hsl(var(--border))", background: value ? `${HERA_COLORS.verde}11` : "transparent" }}
+                  >
+                    <div
+                      className="w-8 h-8 rounded-lg shrink-0 mt-0.5 border-2 flex items-center justify-center transition-all"
+                      style={{ borderColor: value ? HERA_COLORS.verde : "hsl(var(--border))", background: value ? HERA_COLORS.verde : "transparent" }}
+                    >
+                      {value && <span className="text-white font-bold text-sm">✓</span>}
+                    </div>
+                    <span className="text-lg text-foreground/80 leading-snug">
+                      {label}
+                      {required ? (
+                        <span className="text-destructive ml-1">*</span>
+                      ) : (
+                        <span className="text-muted-foreground ml-1">(facoltativo)</span>
+                      )}
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              {formError && (
+                <p className="text-destructive text-lg font-semibold text-center">{formError}</p>
+              )}
+
+              <button
+                onClick={handleFormSubmit}
+                disabled={formLoading}
+                className="w-full text-2xl font-black py-6 rounded-full text-white transition-all active:scale-[0.98] shadow-lg disabled:opacity-50"
+                style={{ background: `linear-gradient(135deg, ${HERA_COLORS.verde}, ${HERA_COLORS.ciano}, ${HERA_COLORS.magenta})` }}
+              >
+                {formLoading ? "Salvataggio..." : "AVANTI →"}
+              </button>
+
+              <p className="text-center text-muted-foreground/60 text-base">
+                * campi obbligatori
+              </p>
+
+              {/* Strumento di test — riempie il form con dati fake, mai salvati nel db ufficiale */}
+              <button
+                onClick={fillFakeTestData}
+                className="w-full text-lg font-bold py-4 rounded-full text-white bg-blue-600 active:scale-[0.98] transition-transform"
+              >
+                🧪 COMPILA (dati di test, non salvati)
+              </button>
             </div>
+          </TouchZone>
 
-            {formError && (
-              <p className="text-destructive text-lg font-semibold text-center">{formError}</p>
-            )}
-
-            <button
-              onClick={handleFormSubmit}
-              disabled={formLoading}
-              className="w-full text-2xl font-black py-6 rounded-full text-white transition-all hover:scale-[1.02] shadow-lg disabled:opacity-50"
-              style={{ background: `linear-gradient(135deg, ${HERA_COLORS.verde}, ${HERA_COLORS.ciano}, ${HERA_COLORS.magenta})` }}
-            >
-              {formLoading ? "Salvataggio..." : "AVANTI →"}
-            </button>
-
-            <p className="text-center text-muted-foreground/60 text-base">
-              * campi obbligatori
-            </p>
-          </div>
+          <BottomSafe />
         </div>
       )}
 
       {/* ── SELFIE ── */}
       {screen === "selfie" && (
-        <div className="flex-1 flex flex-col items-center justify-center px-16 pb-16 gap-10 w-full max-w-[700px] mx-auto">
+        <div className="h-[1920px] w-full flex flex-col">
           <canvas ref={captureCanvasRef} className="hidden" />
           <input ref={fileInputRef} type="file" accept="image/jpeg,image/jpg,image/png,image/webp" className="hidden" onChange={handleFileUpload} />
 
-          {selfieStep === "idle" && (
-            <>
-              <div className="space-y-4 text-center">
+          <TopZone>
+            <HeraLogo className="h-14 w-auto" />
+            {selfieStep === "idle" && (
+              <>
                 <h2 className="text-5xl font-black text-foreground">Scatta la tua foto</h2>
-                <p className="text-2xl text-muted-foreground leading-relaxed">
+                <p className="text-2xl text-muted-foreground leading-relaxed max-w-[700px]">
                   {userName ? `Ciao ${userName.split(" ")[0]}! ` : ""}Il tuo ritratto entrerà nel gradiente personale.
                 </p>
-              </div>
+                {selfieError && <p className="text-lg text-destructive font-medium">{selfieError}</p>}
+              </>
+            )}
+            {selfieStep === "capturing" && (
+              <>
+                <h2 className="text-5xl font-black text-foreground">Mettiti in posa!</h2>
+                <p className="text-xl text-muted-foreground">Centra il viso e scatta quando sei pronto/a</p>
+              </>
+            )}
+            {selfieStep === "preview" && (
+              <>
+                <h2 className="text-5xl font-black text-foreground">Ti piace?</h2>
+                <p className="text-xl text-muted-foreground">Se sei soddisfatto/a, procedi al quiz</p>
+              </>
+            )}
+          </TopZone>
 
-              {selfieError && (
-                <p className="text-lg text-destructive font-medium">{selfieError}</p>
-              )}
-
+          <TouchZone className="gap-10">
+            {selfieStep === "idle" && (
               <div className="flex flex-col items-center gap-5 w-full">
                 <button
                   onClick={startCamera}
-                  className="flex items-center gap-4 text-2xl font-bold px-14 py-6 rounded-full text-white shadow-lg hover:scale-105 transition-transform"
+                  className="flex items-center gap-4 text-2xl font-bold px-14 py-6 rounded-full text-white shadow-lg active:scale-95 transition-transform"
                   style={{ background: `linear-gradient(135deg, ${HERA_COLORS.verde}, ${HERA_COLORS.ciano}, ${HERA_COLORS.magenta})` }}
                 >
                   📷 APRI FOTOCAMERA
                 </button>
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="flex items-center gap-4 text-xl font-semibold px-12 py-5 rounded-full border-2 border-primary text-primary hover:bg-primary/5 transition-colors"
+                  className="flex items-center gap-4 text-xl font-semibold px-12 py-5 rounded-full border-2 border-primary text-primary transition-colors"
                 >
                   🖼️ CARICA UNA FOTO
                 </button>
@@ -952,141 +1059,139 @@ export default function TotemPage() {
                   Salta questo passaggio
                 </button>
               </div>
-            </>
-          )}
+            )}
 
-          {selfieStep === "capturing" && (
-            <>
-              <div className="space-y-4 text-center">
-                <h2 className="text-5xl font-black text-foreground">Mettiti in posa!</h2>
-                <p className="text-xl text-muted-foreground">Centra il viso e scatta quando sei pronto/a</p>
-              </div>
-              <div className="relative mx-auto" style={{ width: 400, height: 400 }}>
-                <div
-                  className="absolute inset-0 rounded-full overflow-hidden border-8 border-transparent"
-                  style={{ background: `linear-gradient(white, white) padding-box, linear-gradient(135deg, ${HERA_COLORS.verde}, ${HERA_COLORS.ciano}, ${HERA_COLORS.magenta}) border-box` }}
-                >
-                  <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover scale-x-[-1]" />
-                </div>
-              </div>
-              <div className="flex flex-col items-center gap-4">
-                <button
-                  onClick={capturePhoto}
-                  className="w-24 h-24 rounded-full text-white text-5xl flex items-center justify-center shadow-xl hover:scale-110 transition-transform"
-                  style={{ background: `linear-gradient(135deg, ${HERA_COLORS.verde}, ${HERA_COLORS.ciano}, ${HERA_COLORS.magenta})` }}
-                >
-                  📸
-                </button>
-                <button onClick={() => { stopCamera(); setSelfieStep("idle"); }} className="text-xl py-4 px-8 text-muted-foreground underline">
-                  Annulla
-                </button>
-              </div>
-            </>
-          )}
-
-          {selfieStep === "preview" && selfieDataUrl && (
-            <>
-              <div className="space-y-3 text-center">
-                <h2 className="text-5xl font-black text-foreground">Ti piace?</h2>
-                <p className="text-xl text-muted-foreground">Se sei soddisfatto/a, procedi al quiz</p>
-              </div>
-              <div className="relative mx-auto flex items-center justify-center" style={{ width: 340, height: 340 }}>
-                <div
-                  className="rounded-full p-5 shadow-2xl"
-                  style={{ background: `linear-gradient(135deg, ${HERA_COLORS.verde}, ${HERA_COLORS.ciano}, ${HERA_COLORS.magenta})`, width: 340, height: 340 }}
-                >
-                  <div className="rounded-full w-full h-full overflow-hidden" style={{ background: "#e8e0ec" }}>
-                    <img src={selfieDataUrl} alt="Selfie" className="w-full h-full object-cover" />
+            {selfieStep === "capturing" && (
+              <>
+                <div className="relative mx-auto" style={{ width: 400, height: 400 }}>
+                  <div
+                    className="absolute inset-0 rounded-full overflow-hidden border-8 border-transparent"
+                    style={{ background: `linear-gradient(white, white) padding-box, linear-gradient(135deg, ${HERA_COLORS.verde}, ${HERA_COLORS.ciano}, ${HERA_COLORS.magenta}) border-box` }}
+                  >
+                    <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover scale-x-[-1]" />
                   </div>
                 </div>
-              </div>
-              <div className="flex flex-col items-center gap-4">
-                <button
-                  onClick={confirmSelfie}
-                  className="text-2xl font-bold px-14 py-6 rounded-full text-white shadow-lg hover:scale-105 transition-transform"
-                  style={{ background: `linear-gradient(135deg, ${HERA_COLORS.verde}, ${HERA_COLORS.ciano}, ${HERA_COLORS.magenta})` }}
-                >
-                  ✓ OTTIMA! PROCEDI
-                </button>
-                <button onClick={retrySelfie} className="text-xl py-4 px-8 text-muted-foreground underline">
-                  Riprova
-                </button>
-              </div>
-            </>
-          )}
+                <div className="flex flex-col items-center gap-4">
+                  <button
+                    onClick={capturePhoto}
+                    className="w-24 h-24 rounded-full text-white text-5xl flex items-center justify-center shadow-xl active:scale-95 transition-transform"
+                    style={{ background: `linear-gradient(135deg, ${HERA_COLORS.verde}, ${HERA_COLORS.ciano}, ${HERA_COLORS.magenta})` }}
+                  >
+                    📸
+                  </button>
+                  <button onClick={() => { stopCamera(); setSelfieStep("idle"); }} className="text-xl py-4 px-8 text-muted-foreground underline">
+                    Annulla
+                  </button>
+                </div>
+              </>
+            )}
+
+            {selfieStep === "preview" && selfieDataUrl && (
+              <>
+                <div className="relative mx-auto flex items-center justify-center" style={{ width: 340, height: 340 }}>
+                  <div
+                    className="rounded-full p-5 shadow-2xl"
+                    style={{ background: `linear-gradient(135deg, ${HERA_COLORS.verde}, ${HERA_COLORS.ciano}, ${HERA_COLORS.magenta})`, width: 340, height: 340 }}
+                  >
+                    <div className="rounded-full w-full h-full overflow-hidden" style={{ background: "#e8e0ec" }}>
+                      <img src={selfieDataUrl} alt="Selfie" className="w-full h-full object-cover" />
+                    </div>
+                  </div>
+                </div>
+                <div className="flex flex-col items-center gap-4">
+                  <button
+                    onClick={confirmSelfie}
+                    className="text-2xl font-bold px-14 py-6 rounded-full text-white shadow-lg active:scale-95 transition-transform"
+                    style={{ background: `linear-gradient(135deg, ${HERA_COLORS.verde}, ${HERA_COLORS.ciano}, ${HERA_COLORS.magenta})` }}
+                  >
+                    ✓ OTTIMA! PROCEDI
+                  </button>
+                  <button onClick={retrySelfie} className="text-xl py-4 px-8 text-muted-foreground underline">
+                    Riprova
+                  </button>
+                </div>
+              </>
+            )}
+          </TouchZone>
+
+          <BottomSafe />
         </div>
       )}
 
       {/* ── QUIZ — 1 domanda per schermata ── */}
       {screen === "quiz" && currentQuestion && (
-        <div className="flex-1 flex flex-col items-center justify-center px-16 pb-16 gap-0 w-full max-w-[920px] mx-auto">
-          {/* Progress */}
-          <div className="w-full mb-10">
-            <div className="flex justify-between items-center mb-3">
+        <div className="h-[1920px] w-full flex flex-col">
+          <TopZone>
+            <HeraLogo className="h-14 w-auto" />
+            <div className="w-full max-w-[820px] space-y-3">
               <p className="text-lg font-semibold text-muted-foreground uppercase tracking-widest">
                 Domanda {currentQuestionIndex + 1} di {questions.length}
               </p>
+              <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all duration-500"
+                  style={{
+                    width: `${((currentQuestionIndex) / questions.length) * 100}%`,
+                    background: `linear-gradient(90deg, ${HERA_COLORS.verde}, ${HERA_COLORS.ciano})`,
+                  }}
+                />
+              </div>
             </div>
-            <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-              <div
-                className="h-full rounded-full transition-all duration-500"
-                style={{
-                  width: `${((currentQuestionIndex) / questions.length) * 100}%`,
-                  background: `linear-gradient(90deg, ${HERA_COLORS.verde}, ${HERA_COLORS.ciano})`,
-                }}
-              />
-            </div>
-          </div>
+          </TopZone>
 
-          {/* Domanda */}
-          <div className="w-full space-y-10">
-            <h3 className="text-3xl font-black text-foreground leading-snug">
-              {currentQuestion.question_text}
-            </h3>
+          <TouchZone>
+            <div className="w-full max-w-[820px] space-y-10">
+              <h3 className="text-3xl font-black text-foreground leading-snug text-center">
+                {currentQuestion.question_text}
+              </h3>
 
-            <div className="flex flex-col gap-5">
-              {(["a", "b"] as SelectedOption[]).map((opt) => {
-                const icon = opt === "a" ? currentQuestion.option_a_icon : currentQuestion.option_b_icon;
-                const text = opt === "a" ? currentQuestion.option_a_text : currentQuestion.option_b_text;
-                const isSelected = selectedAnswers[currentQuestion.id] === opt;
-                return (
+              <div className="flex flex-col gap-5">
+                {(["a", "b"] as SelectedOption[]).map((opt) => {
+                  const icon = opt === "a" ? currentQuestion.option_a_icon : currentQuestion.option_b_icon;
+                  const text = opt === "a" ? currentQuestion.option_a_text : currentQuestion.option_b_text;
+                  const isSelected = selectedAnswers[currentQuestion.id] === opt;
+                  return (
+                    <button
+                      key={opt}
+                      onClick={() => handleSelectAnswer(currentQuestion.id, opt)}
+                      disabled={autoAdvancing}
+                      aria-pressed={isSelected}
+                      className={`flex items-center gap-6 text-left px-8 py-7 rounded-2xl border-2 transition-all duration-200 ${
+                        isSelected
+                          ? "border-primary bg-primary/5 shadow-md scale-[1.01]"
+                          : "border-border bg-card"
+                      } ${autoAdvancing ? "pointer-events-none" : ""}`}
+                    >
+                      <span className="text-5xl shrink-0">{icon}</span>
+                      <span className={`text-2xl font-semibold leading-snug ${isSelected ? "text-primary" : "text-foreground"}`}>
+                        {text}
+                      </span>
+                      {isSelected && (
+                        <span className="ml-auto text-primary text-3xl shrink-0">✓</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {process.env.NODE_ENV === "development" && (
+                <div className="text-center">
                   <button
-                    key={opt}
-                    onClick={() => handleSelectAnswer(currentQuestion.id, opt)}
-                    disabled={autoAdvancing}
-                    aria-pressed={isSelected}
-                    className={`flex items-center gap-6 text-left px-8 py-7 rounded-2xl border-2 transition-all duration-200 ${
-                      isSelected
-                        ? "border-primary bg-primary/5 shadow-md scale-[1.01]"
-                        : "border-border bg-card hover:border-primary/50 hover:shadow-md"
-                    } ${autoAdvancing ? "pointer-events-none" : ""}`}
+                    onClick={() => {
+                      const autoAnswers: Record<string, SelectedOption> = {};
+                      questions.forEach((q) => { autoAnswers[q.id] = "a"; });
+                      submitQuizWithAnswers(autoAnswers);
+                    }}
+                    className="text-xs text-muted-foreground/40 underline underline-offset-2"
                   >
-                    <span className="text-5xl shrink-0">{icon}</span>
-                    <span className={`text-2xl font-semibold leading-snug ${isSelected ? "text-primary" : "text-foreground"}`}>
-                      {text}
-                    </span>
-                    {isSelected && (
-                      <span className="ml-auto text-primary text-3xl shrink-0">✓</span>
-                    )}
+                    [dev] auto-rispondi tutto
                   </button>
-                );
-              })}
+                </div>
+              )}
             </div>
-          </div>
+          </TouchZone>
 
-          {/* Pulsante test — solo in sviluppo */}
-          {process.env.NODE_ENV === "development" && (
-            <button
-              onClick={() => {
-                const autoAnswers: Record<string, SelectedOption> = {};
-                questions.forEach((q) => { autoAnswers[q.id] = "a"; });
-                submitQuizWithAnswers(autoAnswers);
-              }}
-              className="mt-16 text-xs text-muted-foreground/40 underline underline-offset-2 hover:text-muted-foreground/60"
-            >
-              [dev] auto-rispondi tutto
-            </button>
-          )}
+          <BottomSafe />
         </div>
       )}
 
@@ -1102,23 +1207,28 @@ export default function TotemPage() {
       {/* ── RESULT ── */}
       {screen === "result" && result && (
         <div
-          className="w-full min-h-[1920px] flex flex-col"
+          className="w-full h-[1920px] flex flex-col"
           style={{ background: `linear-gradient(160deg, ${HERA_COLORS.verde}18, ${HERA_COLORS.ciano}18, ${HERA_COLORS.magenta}18)` }}
         >
-          <div className="flex items-center justify-center pt-14 pb-4 shrink-0">
-            <HeraLogo className="h-16 w-auto" />
-          </div>
+          <style>{`
+            @keyframes heraReveal {
+              from { opacity: 0; transform: scale(0.85); }
+              to { opacity: 1; transform: scale(1); }
+            }
+          `}</style>
 
-          <div className="flex-1 flex flex-col items-center px-16 pb-16 gap-10">
-            {/* Eyebrow */}
-            <p className="text-xl font-semibold text-muted-foreground uppercase tracking-widest text-center">
+          <TopZone>
+            <HeraLogo className="h-14 w-auto" />
+            <p className="text-xl font-semibold text-muted-foreground uppercase tracking-widest">
               IL TUO GRADIENTE HERA
             </p>
+          </TopZone>
 
-            {/* Foto con anello gradiente — focal point principale */}
+          <TouchZone className="gap-8 justify-start pt-2">
+            {/* Foto con anello gradiente — focal point, reveal animato */}
             <div
               className="rounded-full p-5 shadow-2xl"
-              style={{ background: gradient.css, width: 380, height: 380 }}
+              style={{ background: gradient.css, width: 340, height: 340, animation: "heraReveal 700ms cubic-bezier(0.16,1,0.3,1) both" }}
             >
               <div className="rounded-full w-full h-full overflow-hidden flex items-center justify-center" style={{ background: "#e8e0ec" }}>
                 {selfieProcessing ? (
@@ -1135,22 +1245,22 @@ export default function TotemPage() {
             </div>
 
             {/* Nome profilo */}
-            <div className="text-center space-y-3">
-              <h2 className="text-6xl font-black text-foreground tracking-tight leading-none">
+            <div className="text-center space-y-2">
+              <h2 className="text-5xl font-black text-foreground tracking-tight leading-none">
                 {profile?.name || result.profile_key.toUpperCase()}
               </h2>
               {profile?.claim && (
-                <p className="text-2xl text-foreground/70 italic max-w-[680px] mx-auto">
+                <p className="text-xl text-foreground/70 italic max-w-[680px] mx-auto">
                   {profile.claim}
                 </p>
               )}
             </div>
 
             {/* Barra gradiente */}
-            <div className="w-full max-w-[580px] h-5 rounded-full shadow-md" style={{ background: gradient.css }} />
+            <div className="w-full max-w-[520px] h-4 rounded-full shadow-md" style={{ background: gradient.css }} />
 
             {/* Score V/C/M */}
-            <div className="flex justify-center gap-12">
+            <div className="flex justify-center gap-10">
               {[
                 { key: "verde",   score: result.score_verde },
                 { key: "magenta", score: result.score_magenta },
@@ -1160,74 +1270,68 @@ export default function TotemPage() {
                 return (
                   <div key={key} className="flex flex-col items-center gap-2">
                     <div
-                      className="w-18 h-18 rounded-full flex items-center justify-center text-4xl"
-                      style={{ width: 72, height: 72, backgroundColor: cat.color + "22", border: `3px solid ${cat.color}` }}
+                      className="rounded-full flex items-center justify-center text-3xl"
+                      style={{ width: 64, height: 64, backgroundColor: cat.color + "22", border: `3px solid ${cat.color}` }}
                     >
                       {cat.icon}
                     </div>
-                    <span className="text-2xl font-black" style={{ color: cat.color }}>{score}</span>
+                    <span className="text-xl font-black" style={{ color: cat.color }}>{score}</span>
                     <span className="text-sm text-muted-foreground font-semibold uppercase tracking-wider">{cat.label}</span>
                   </div>
                 );
               })}
             </div>
 
-            {/* Descrizione */}
             {profile?.description && (
-              <p className="text-xl text-muted-foreground max-w-[680px] mx-auto text-center leading-relaxed">
+              <p className="text-lg text-muted-foreground max-w-[680px] mx-auto text-center leading-relaxed">
                 {profile.description}
               </p>
             )}
 
-            {/* CTA */}
-            <div className="flex flex-col items-center gap-6 pt-4 w-full max-w-[700px]">
-              {/* Premio se disponibile */}
+            {/* CTA — sempre nella touch zone */}
+            <div className="flex flex-col items-center gap-5 pt-2 w-full max-w-[680px]">
               {result.code && (
                 <button
                   onClick={() => setScreen("prize")}
-                  className="w-full flex items-center justify-center gap-4 text-2xl font-bold px-12 py-6 rounded-full text-white transition-transform hover:scale-105 shadow-xl"
+                  className="w-full flex items-center justify-center gap-4 text-2xl font-bold px-12 py-6 rounded-full text-white transition-transform active:scale-95 shadow-xl"
                   style={{ background: `linear-gradient(135deg, ${HERA_COLORS.verde}, ${HERA_COLORS.ciano}, ${HERA_COLORS.magenta})` }}
                 >
                   🏆 SCOPRI SE HAI VINTO UN PREMIO
                 </button>
               )}
 
-              {/* Postcard QR */}
               {postcardUrl && (
-                <div className="w-full flex flex-col items-center gap-4 py-4">
-                  <p className="text-2xl font-bold text-foreground tracking-wide text-center">
+                <div className="w-full flex flex-col items-center gap-4 py-2">
+                  <p className="text-xl font-bold text-foreground tracking-wide text-center">
                     Scarica la tua postcard
                   </p>
                   {postcardQrUrl ? (
                     <>
-                      <img src={postcardQrUrl} alt="QR Code postcard" className="w-56 h-56 rounded-2xl shadow-lg" />
-                      <p className="text-lg text-muted-foreground text-center">
+                      <img src={postcardQrUrl} alt="QR Code postcard" className="w-44 h-44 rounded-2xl shadow-lg" />
+                      <p className="text-base text-muted-foreground text-center">
                         Inquadra il QR con il tuo smartphone
                       </p>
                     </>
                   ) : (
-                    <div className="w-56 h-56 rounded-2xl bg-muted animate-pulse" />
+                    <div className="w-44 h-44 rounded-2xl bg-muted animate-pulse" />
                   )}
 
-                  {/* Invia per email — visibile ma non funzionante */}
                   <div className="relative group">
                     <button
                       disabled
-                      className="flex items-center gap-3 text-xl font-semibold px-10 py-4 rounded-full border-2 border-muted-foreground/30 text-muted-foreground/50 cursor-not-allowed"
+                      className="flex items-center gap-3 text-lg font-semibold px-8 py-3 rounded-full border-2 border-muted-foreground/30 text-muted-foreground/50 cursor-not-allowed"
                     >
                       ✉️ Invia per email
                     </button>
-                    {/* Tooltip */}
                     <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 hidden group-hover:block bg-foreground text-background text-sm rounded-xl px-4 py-3 w-64 text-center shadow-xl z-10">
                       Funzione in arrivo — richiede configurazione del servizio email
                     </div>
                   </div>
 
-                  {/* Download diretto — solo in sviluppo */}
                   {process.env.NODE_ENV === "development" && (
                     <button
                       onClick={() => downloadPostcard(postcardUrl)}
-                      className="text-sm text-muted-foreground/40 underline underline-offset-2 hover:text-muted-foreground/60"
+                      className="text-sm text-muted-foreground/40 underline underline-offset-2"
                     >
                       [dev] download diretto
                     </button>
@@ -1238,69 +1342,96 @@ export default function TotemPage() {
               {!result.code && (
                 <button
                   onClick={handleRestart}
-                  className="text-xl font-semibold px-10 py-4 text-muted-foreground underline mt-2"
+                  className="text-xl font-semibold px-10 py-4 text-muted-foreground underline"
                 >
                   Ricomincia
                 </button>
               )}
             </div>
-          </div>
+          </TouchZone>
+
+          <BottomSafe />
         </div>
       )}
 
       {/* ── PRIZE ── */}
       {screen === "prize" && result && (
-        <div className="flex-1 flex flex-col items-center justify-center px-16 pb-16 gap-14 text-center">
-          {/* Countdown */}
-          <div className="flex flex-col items-center gap-2">
-            <div
-              className="w-20 h-20 rounded-full flex items-center justify-center text-3xl font-black text-white shadow-lg"
-              style={{ background: `linear-gradient(135deg, ${HERA_COLORS.verde}, ${HERA_COLORS.ciano}, ${HERA_COLORS.magenta})` }}
-            >
-              {prizeCountdown}
+        <div className="h-[1920px] w-full flex flex-col">
+          <TopZone>
+            <div className="relative flex items-center justify-center" style={{ width: 140, height: 140 }}>
+              <svg width="140" height="140" viewBox="0 0 140 140" className="-rotate-90">
+                <circle cx="70" cy="70" r={RING_R} fill="none" stroke="hsl(var(--muted))" strokeWidth="10" />
+                <circle
+                  cx="70" cy="70" r={RING_R} fill="none"
+                  stroke="url(#prizeGradient)" strokeWidth="10" strokeLinecap="round"
+                  strokeDasharray={RING_C}
+                  strokeDashoffset={ringOffset}
+                  style={{ transition: "stroke-dashoffset 1s linear" }}
+                />
+                <defs>
+                  <linearGradient id="prizeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor={HERA_COLORS.verde} />
+                    <stop offset="50%" stopColor={HERA_COLORS.ciano} />
+                    <stop offset="100%" stopColor={HERA_COLORS.magenta} />
+                  </linearGradient>
+                </defs>
+              </svg>
+              <span className="absolute text-3xl font-black text-foreground">{prizeCountdown}</span>
             </div>
-            <p className="text-muted-foreground text-base">secondi al reset</p>
-          </div>
+            <p className="text-muted-foreground text-base -mt-2">secondi al reset</p>
 
-          <div className="space-y-8">
             <h2
-              className="text-8xl font-black tracking-tight bg-clip-text text-transparent"
+              className="text-7xl font-black tracking-tight bg-clip-text text-transparent"
               style={{ backgroundImage: `linear-gradient(135deg, ${HERA_COLORS.verde}, ${HERA_COLORS.ciano}, ${HERA_COLORS.magenta})` }}
             >
               HAI VINTO!
             </h2>
+          </TopZone>
 
-            <div className="space-y-5">
-              <p className="text-3xl text-foreground font-bold">
+          <TouchZone className="gap-10">
+            <div className="space-y-6 text-center">
+              <p className="text-2xl text-foreground font-bold">
                 Complimenti! Hai ottenuto un premio.
               </p>
               <div
-                className="rounded-3xl px-12 py-8 inline-block"
+                className="rounded-3xl px-10 py-7 inline-block"
                 style={{ background: `linear-gradient(135deg, ${HERA_COLORS.verde}22, ${HERA_COLORS.ciano}22)` }}
               >
-                <p className="text-2xl text-foreground/80 leading-relaxed">
+                <p className="text-xl text-foreground/80 leading-relaxed">
                   📩 Riceverai una mail all'indirizzo che hai indicato<br />
                   con le <strong>istruzioni per il ritiro del premio</strong>.
                 </p>
               </div>
+
+              {result.prize?.name && (
+                <p className="text-xl text-muted-foreground">
+                  Premio: <strong>{result.prize.name}</strong>
+                </p>
+              )}
             </div>
 
-            {result.prize?.name && (
-              <p className="text-2xl text-muted-foreground">
-                Premio: <strong>{result.prize.name}</strong>
-              </p>
-            )}
-          </div>
+            <button
+              onClick={handleRestart}
+              className="text-2xl font-black px-16 py-6 rounded-full text-white shadow-xl active:scale-95 transition-transform"
+              style={{ background: `linear-gradient(135deg, ${HERA_COLORS.verde}, ${HERA_COLORS.ciano}, ${HERA_COLORS.magenta})` }}
+            >
+              🔄 RICOMINCIA
+            </button>
+          </TouchZone>
 
-          <button
-            onClick={handleRestart}
-            className="text-2xl font-black px-16 py-6 rounded-full text-white shadow-xl hover:scale-105 transition-transform"
-            style={{ background: `linear-gradient(135deg, ${HERA_COLORS.verde}, ${HERA_COLORS.ciano}, ${HERA_COLORS.magenta})` }}
-          >
-            🔄 RICOMINCIA
-          </button>
+          <BottomSafe />
         </div>
       )}
+
+      {/* Tastiera kiosk — solo dove servono campi di testo (form) */}
+      <KioskKeyboard
+        visible={screen === "form" && activeKioskField !== null}
+        value={activeKioskField ? KIOSK_FIELDS[activeKioskField].value : ""}
+        label={activeKioskField ? KIOSK_FIELDS[activeKioskField].label : ""}
+        variant={activeKioskField ? KIOSK_FIELDS[activeKioskField].variant : "text"}
+        onChange={(v) => activeKioskField && KIOSK_FIELDS[activeKioskField].set(v)}
+        onClose={closeKioskKeyboard}
+      />
     </div>
   );
 }
