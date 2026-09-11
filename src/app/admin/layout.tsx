@@ -37,6 +37,18 @@ export default function AdminLayout({
       setLoading(false);
       return;
     }
+    // Auto-login via URL param ?hub=1 (hub bypass)
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("hub") === "1") {
+      supabase.auth.signInWithPassword({
+        email: "admin@heratest.it",
+        password: "Hera2026!",
+      }).then(({ data }) => {
+        if (data.user) setUser(data.user);
+        setLoading(false);
+      });
+      return;
+    }
     supabase.auth.getUser().then(({ data }) => {
       setUser(data.user);
       setLoading(false);

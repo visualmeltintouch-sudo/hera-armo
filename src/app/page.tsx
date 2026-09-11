@@ -14,13 +14,13 @@ import type {
   QuizAnswer,
   PlayResult,
   SelectedOption,
-  ValidateCodeResult,
 } from "@/lib/types";
 
 type Screen =
   | "loading"
   | "intro"
-  | "code_entry"
+  | "age_selection"
+  | "form"
   | "selfie"
   | "quiz"
   | "calculating"
@@ -29,6 +29,7 @@ type Screen =
   | "error";
 
 type SelfieStep = "idle" | "capturing" | "preview";
+type AgeGroup = "young" | "classic";
 
 function HeraLogo({ className }: { className?: string }) {
   return (
@@ -47,6 +48,9 @@ const CATEGORY_ICONS: Record<string, { icon: string; label: string; color: strin
   magenta: { icon: "⚡", label: "Energia",  color: HERA_COLORS.magenta },
 };
 
+const MEDIAPIPE_CDN = "https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation";
+const FACE_DETECTION_CDN = "https://cdn.jsdelivr.net/npm/@mediapipe/face_detection";
+
 export default function TotemPage() {
   const supabase = createClient();
 
@@ -56,36 +60,80 @@ export default function TotemPage() {
   const [event, setEvent] = useState<ArmoEvent | null>(null);
   const [settings, setSettings] = useState<ArmoSettings | null>(null);
 
-  // Code entry
-  const [accessCode, setAccessCode] = useState("");
-  const [codeError, setCodeError] = useState("");
-  const [codeLoading, setCodeLoading] = useState(false);
-  const [registrationId, setRegistrationId] = useState<string | null>(null);
+  // Age group
+  const [ageGroup, setAgeGroup] = useState<AgeGroup | null>(null);
+
+  // Form
+  const [formNome, setFormNome] = useState("");
+  const [formCognome, setFormCognome] = useState("");
+  const [formEmail, setFormEmail] = useState("");
+  const [formTelefono, setFormTelefono] = useState("");
+  const [consenso1, setConsenso1] = useState(false);
+  const [consenso2, setConsenso2] = useState(false);
+  const [consenso3, setConsenso3] = useState(false);
+  const [formError, setFormError] = useState("");
+  const [formLoading, setFormLoading] = useState(false);
+
   const [userName, setUserName] = useState("");
-  const qrRef = useRef<HTMLCanvasElement>(null);
 
   const [questions, setQuestions] = useState<ArmoQuestion[]>([]);
-  // selectedAnswers: questionId → 'a' | 'b'
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, SelectedOption>>({});
+  const [autoAdvancing, setAutoAdvancing] = useState(false);
 
   const [birthYearForPlay, setBirthYearForPlay] = useState(1990);
   const [result, setResult] = useState<PlayResult | null>(null);
   const [profile, setProfile] = useState<ArmoProfile | null>(null);
   const [finalScores, setFinalScores] = useState<ColorScores>({ verde: 0, ciano: 0, magenta: 0 });
   const [postcardUrl, setPostcardUrl] = useState<string | null>(null);
+  const [postcardQrUrl, setPostcardQrUrl] = useState<string | null>(null);
+
+  // Prize countdown
+  const [prizeCountdown, setPrizeCountdown] = useState(20);
 
   // Selfie
   const [selfieStep, setSelfieStep] = useState<SelfieStep>("idle");
-  const [selfieDataUrl, setSelfieDataUrl] = useState<string | null>(null); // bg-removed PNG (data URL)
-  const [selfieStorageUrl, setSelfieStorageUrl] = useState<string | null>(null); // uploaded URL
+  const [selfieDataUrl, setSelfieDataUrl] = useState<string | null>(null);
+  const [selfieStorageUrl, setSelfieStorageUrl] = useState<string | null>(null);
   const [selfieError, setSelfieError] = useState("");
-  const [selfieProcessing, setSelfieProcessing] = useState(false); // bg removal in corso
+  const [selfieProcessing, setSelfieProcessing] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const captureCanvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
   useEffect(() => { loadEvent(); }, []);
+
+  // Prize countdown timer
+  useEffect(() => {
+    if (screen !== "prize") return;
+    setPrizeCountdown(20);
+    const interval = setInterval(() => {
+      setPrizeCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          handleRestart();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [screen]);
+
+  // Rigenera postcard con foto scontornata se arriva dopo quiz
+  useEffect(() => {
+    if (screen !== "result" || !selfieDataUrl || selfieProcessing || !profile || !result) return;
+    generatePostcard({
+      scores: finalScores,
+      profileName: profile.name,
+      claim: profile.claim ?? "",
+      photoUrl: selfieDataUrl,
+    }).then((url) => {
+      setPostcardUrl(url);
+      uploadPostcardAndQr(url, result.session_id);
+    }).catch(() => {});
+  }, [selfieDataUrl]);
 
   async function loadEvent() {
     const { data: events } = await supabase
@@ -119,75 +167,158 @@ export default function TotemPage() {
     setScreen("intro");
   }
 
-  // Genera QR code sulla canvas dopo che la schermata code_error è visibile
-  useEffect(() => {
-    if (codeError && qrRef.current && event) {
-      const url = `${window.location.origin}/register`;
-      import("qrcode").then((QRCode) => {
-        QRCode.toCanvas(qrRef.current!, url, { width: 180, margin: 1 }, () => {});
-      });
-    }
-  }, [codeError, event]);
-
-  async function handleCodeSubmit() {
-    if (!event || !accessCode.trim()) return;
-    setCodeLoading(true);
-    setCodeError("");
-
-    const { data, error: err } = await supabase.rpc("hera_armo_validate_code", {
-      p_code: accessCode.trim().toUpperCase(),
-      p_event_id: event.id,
-    });
-
-    if (err || !data) {
-      setCodeError("Errore di connessione. Riprova.");
-      setCodeLoading(false);
-      return;
-    }
-
-    const res = data as ValidateCodeResult;
-    if (!res.valid) {
-      setCodeError(res.error || "Codice non valido");
-      setCodeLoading(false);
-      return;
-    }
-
-    // Codice valido: carica domande direttamente
-    setRegistrationId(res.registration_id || null);
-    setUserName(res.name || "");
-
-    const group = res.age_group!;
-    const birthYear = res.birth_year!;
+  async function handleAgeSelect(group: AgeGroup) {
+    setAgeGroup(group);
+    const birthYear = group === "young" ? 1990 : 1968;
+    setBirthYearForPlay(birthYear);
 
     const { data: qData } = await supabase
       .from("hera_armo_questions")
       .select("*")
-      .eq("event_id", event.id)
+      .eq("event_id", event!.id)
       .eq("age_group", group)
       .eq("is_active", true);
 
     if (!qData || qData.length === 0) {
       setError("Nessuna domanda disponibile");
       setScreen("error");
-      setCodeLoading(false);
       return;
     }
 
     const shuffled = (qData as ArmoQuestion[])
       .sort(() => Math.random() - 0.5)
-      .slice(0, settings?.questions_per_session ?? 10);
+      .slice(0, 5);
 
     setQuestions(shuffled);
     setSelectedAnswers({});
-    // Salva birth_year per la RPC hera_armo_play
-    setBirthYearForPlay(birthYear);
-    setCodeLoading(false);
-    // Reset selfie state e vai alla schermata selfie
+    setCurrentQuestionIndex(0);
+    setScreen("form");
+  }
+
+  async function handleFormSubmit() {
+    if (!formNome.trim() || !formCognome.trim() || !formEmail.trim() || !formTelefono.trim()) {
+      setFormError("Compila tutti i campi obbligatori");
+      return;
+    }
+    if (!consenso1) {
+      setFormError("Il consenso al trattamento dei dati è obbligatorio");
+      return;
+    }
+    setFormLoading(true);
+    setFormError("");
+
+    const fullName = `${formNome.trim()} ${formCognome.trim()}`;
+    setUserName(fullName);
+
+    // Salva partecipante — best effort, non bloccante
+    try {
+      await supabase.from("hera_armo_participants").insert({
+        event_id: event!.id,
+        nome: formNome.trim(),
+        cognome: formCognome.trim(),
+        email: formEmail.trim(),
+        telefono: formTelefono.trim(),
+        age_group: ageGroup,
+        consenso_dati: consenso1,
+        consenso_marketing: consenso2,
+        consenso_profilazione: consenso3,
+      });
+    } catch {
+      // non bloccante
+    }
+
+    setFormLoading(false);
     setSelfieDataUrl(null);
     setSelfieStorageUrl(null);
     setSelfieStep("idle");
     setSelfieError("");
     setScreen("selfie");
+  }
+
+  // ── Face detection helpers ─────────────────────────────────────────────────
+
+  async function loadFaceDetection(): Promise<any> {
+    if (!(window as any).FaceDetection) {
+      await new Promise<void>((resolve, reject) => {
+        const s = document.createElement("script");
+        s.src = `${FACE_DETECTION_CDN}/face_detection.js`;
+        s.crossOrigin = "anonymous";
+        s.onload = () => resolve();
+        s.onerror = reject;
+        document.head.appendChild(s);
+      });
+    }
+    const FaceDetection = (window as any).FaceDetection;
+    const fd = new FaceDetection({
+      locateFile: (file: string) => `${FACE_DETECTION_CDN}/${file}`,
+    });
+    fd.setOptions({ model: "short", minDetectionConfidence: 0.5 });
+    return fd;
+  }
+
+  async function detectFaceBoundingBox(canvas: HTMLCanvasElement): Promise<{
+    cx: number; cy: number; w: number; h: number;
+  } | null> {
+    try {
+      const fd = await loadFaceDetection();
+      const result = await new Promise<any>((resolve, reject) => {
+        fd.onResults((r: any) => resolve(r));
+        fd.initialize()
+          .then(() => fd.send({ image: canvas }))
+          .catch(reject);
+      });
+      const detections = result?.detections;
+      if (!detections || detections.length === 0) return null;
+      const bb = detections[0].boundingBox;
+      return {
+        cx: bb.xCenter,
+        cy: bb.yCenter,
+        w: bb.width,
+        h: bb.height,
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  function adaptiveCrop(
+    source: HTMLCanvasElement,
+    face: { cx: number; cy: number; w: number; h: number }
+  ): HTMLCanvasElement {
+    const W = source.width;
+    const H = source.height;
+
+    // Area del viso normalizzata
+    const faceArea = face.w * face.h;
+
+    // Calcola il padding intorno al viso in base alla sua dimensione relativa
+    // Viso grande (>15%) → più zoom-out (padding 2.0×)
+    // Viso piccolo (<5%) → più zoom-in (padding 0.7×)
+    // Normale → padding 1.2×
+    let padding: number;
+    if (faceArea > 0.15) padding = 2.0;
+    else if (faceArea < 0.05) padding = 0.7;
+    else padding = 1.2;
+
+    // Crop square centrato sul viso con il padding calcolato
+    const faceSizePx = Math.max(face.w * W, face.h * H);
+    const cropSize = Math.min(Math.max(faceSizePx * padding, 200), Math.min(W, H));
+    const faceCxPx = face.cx * W;
+    const faceCyPx = face.cy * H;
+
+    let x0 = faceCxPx - cropSize / 2;
+    let y0 = faceCyPx - cropSize / 2;
+    // Clamp dentro i bordi
+    x0 = Math.max(0, Math.min(x0, W - cropSize));
+    y0 = Math.max(0, Math.min(y0, H - cropSize));
+
+    const out = Math.min(cropSize, 384);
+    const result = document.createElement("canvas");
+    result.width = out;
+    result.height = out;
+    const ctx = result.getContext("2d")!;
+    ctx.drawImage(source, x0, y0, cropSize, cropSize, 0, 0, out, out);
+    return result;
   }
 
   // ── Selfie helpers ──────────────────────────────────────────────────────────
@@ -216,20 +347,41 @@ export default function TotemPage() {
   }
 
   async function capturePhoto() {
-    if (!videoRef.current || !captureCanvasRef.current) return;
+    if (!videoRef.current) return;
     const video = videoRef.current;
-    const canvas = captureCanvasRef.current;
-    // Center-crop square, capped at 384px for speed
+
+    // Cattura frame completo (non specchiato — la segmentazione funziona meglio)
+    const fullCanvas = document.createElement("canvas");
+    fullCanvas.width = video.videoWidth;
+    fullCanvas.height = video.videoHeight;
+    const fullCtx = fullCanvas.getContext("2d")!;
+    // Mirror orizzontale per selfie naturale
+    fullCtx.translate(fullCanvas.width, 0);
+    fullCtx.scale(-1, 1);
+    fullCtx.drawImage(video, 0, 0);
+    fullCtx.setTransform(1, 0, 0, 1, 0, 0);
+
+    stopCamera();
+
+    // Prova il riconoscimento facciale adattivo
+    const faceBox = await detectFaceBoundingBox(fullCanvas);
+    if (faceBox) {
+      const cropped = adaptiveCrop(fullCanvas, faceBox);
+      showRawPreview(cropped.toDataURL("image/jpeg", 0.85));
+      return;
+    }
+
+    // Fallback: center-crop quadrato
     const srcSize = Math.min(video.videoWidth, video.videoHeight);
     const outSize = Math.min(srcSize, 384);
-    canvas.width = outSize;
-    canvas.height = outSize;
-    const ctx = canvas.getContext("2d")!;
-    const offsetX = (video.videoWidth - srcSize) / 2;
-    const offsetY = (video.videoHeight - srcSize) / 2;
-    ctx.drawImage(video, offsetX, offsetY, srcSize, srcSize, 0, 0, outSize, outSize);
-    stopCamera();
-    showRawPreview(canvas.toDataURL("image/jpeg", 0.85));
+    const fallback = document.createElement("canvas");
+    fallback.width = outSize;
+    fallback.height = outSize;
+    const ctx = fallback.getContext("2d")!;
+    const offsetX = (fullCanvas.width - srcSize) / 2;
+    const offsetY = (fullCanvas.height - srcSize) / 2;
+    ctx.drawImage(fullCanvas, offsetX, offsetY, srcSize, srcSize, 0, 0, outSize, outSize);
+    showRawPreview(fallback.toDataURL("image/jpeg", 0.85));
   }
 
   async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -237,19 +389,33 @@ export default function TotemPage() {
     if (!file) return;
     const img = new Image();
     const objectUrl = URL.createObjectURL(file);
-    img.onload = () => {
+    img.onload = async () => {
       URL.revokeObjectURL(objectUrl);
+      const srcCanvas = document.createElement("canvas");
+      srcCanvas.width = img.naturalWidth;
+      srcCanvas.height = img.naturalHeight;
+      const ctx = srcCanvas.getContext("2d")!;
+      ctx.drawImage(img, 0, 0);
+
+      // Prova face detection
+      const faceBox = await detectFaceBoundingBox(srcCanvas);
+      if (faceBox) {
+        const cropped = adaptiveCrop(srcCanvas, faceBox);
+        showRawPreview(cropped.toDataURL("image/jpeg", 0.85));
+        return;
+      }
+
+      // Fallback: center-crop
       const srcSize = Math.min(img.naturalWidth, img.naturalHeight);
       const size = Math.min(srcSize, 384);
-      const canvas = document.createElement("canvas");
-      canvas.width = size;
-      canvas.height = size;
-      const ctx = canvas.getContext("2d")!;
+      const out = document.createElement("canvas");
+      out.width = size;
+      out.height = size;
+      const outCtx = out.getContext("2d")!;
       const offsetX = (img.naturalWidth - srcSize) / 2;
       const offsetY = (img.naturalHeight - srcSize) / 2;
-      ctx.drawImage(img, offsetX, offsetY, srcSize, srcSize, 0, 0, size, size);
-      // Normalizza sempre a JPEG — gestisce AVIF, HEIC, JFIF, WebP, ecc.
-      showRawPreview(canvas.toDataURL("image/jpeg", 0.85));
+      outCtx.drawImage(img, offsetX, offsetY, srcSize, srcSize, 0, 0, size, size);
+      showRawPreview(out.toDataURL("image/jpeg", 0.85));
     };
     img.onerror = () => {
       URL.revokeObjectURL(objectUrl);
@@ -259,60 +425,81 @@ export default function TotemPage() {
     img.src = objectUrl;
   }
 
-  // Mostra subito l'anteprima raw — nessuna attesa per l'utente
   function showRawPreview(sourceDataUrl: string) {
-    setSelfieDataUrl(sourceDataUrl); // anteprima temporanea raw
+    setSelfieDataUrl(sourceDataUrl);
     setSelfieStep("preview");
   }
 
-  // Gira in background mentre l'utente fa il quiz
   async function processInBackground(sourceDataUrl: string) {
     setSelfieProcessing(true);
-    setSelfieDataUrl(null); // reset: niente foto finché non è pronta senza sfondo
-    console.log("[BG-REMOVAL] start");
+    setSelfieDataUrl(null);
+
     try {
-      console.log("[BG-REMOVAL] importing library...");
-      const { removeBackground } = await import("@imgly/background-removal");
-      console.log("[BG-REMOVAL] library loaded ✓");
+      if (!(window as any).SelfieSegmentation) {
+        await new Promise<void>((resolve, reject) => {
+          const s = document.createElement("script");
+          s.src = `${MEDIAPIPE_CDN}/selfie_segmentation.js`;
+          s.crossOrigin = "anonymous";
+          s.onload = () => resolve();
+          s.onerror = reject;
+          document.head.appendChild(s);
+        });
+      }
 
-      console.log("[BG-REMOVAL] fetching source image...");
-      const res = await fetch(sourceDataUrl);
-      const blob = await res.blob();
-      console.log("[BG-REMOVAL] source blob ready, size:", blob.size, "type:", blob.type);
-
-      console.log("[BG-REMOVAL] running removeBackground (model: isnet_quint8)...");
-      const resultBlob = await removeBackground(blob, {
-        model: "isnet_quint8",
-        publicPath: "https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.7.0/dist/",
-        output: { format: "image/png", quality: 0.6 },
-        progress: (key: string, current: number, total: number) => {
-          console.log(`[BG-REMOVAL] progress: ${key} ${current}/${total}`);
-        },
+      const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const el = new Image();
+        el.onload = () => resolve(el);
+        el.onerror = reject;
+        el.src = sourceDataUrl;
       });
-      console.log("[BG-REMOVAL] done ✓ result size:", resultBlob.size);
+
+      const SelfieSegmentation = (window as any).SelfieSegmentation;
+      const seg = new SelfieSegmentation({
+        locateFile: (file: string) => `${MEDIAPIPE_CDN}/${file}`,
+      });
+      seg.setOptions({ modelSelection: 1 });
+
+      const maskCanvas = await new Promise<HTMLCanvasElement>((resolve, reject) => {
+        seg.onResults((results: any) => {
+          const canvas = document.createElement("canvas");
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext("2d")!;
+          ctx.drawImage(img, 0, 0);
+          ctx.globalCompositeOperation = "destination-in";
+          ctx.drawImage(results.segmentationMask, 0, 0, canvas.width, canvas.height);
+          resolve(canvas);
+        });
+        seg.initialize()
+          .then(() => seg.send({ image: img }))
+          .catch(reject);
+      });
+
+      const resultBlob = await new Promise<Blob>((resolve, reject) => {
+        maskCanvas.toBlob(
+          (b) => (b ? resolve(b) : reject(new Error("toBlob failed"))),
+          "image/png",
+          0.9
+        );
+      });
 
       const outputUrl = URL.createObjectURL(resultBlob);
       setSelfieDataUrl(outputUrl);
-      console.log("[BG-REMOVAL] photo updated in state ✓");
 
-      // Upload su Supabase Storage
       if (event) {
         const filename = `${event.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.png`;
         const { data: uploadData, error: uploadErr } = await supabase.storage
           .from("armo-selfies-test")
           .upload(filename, resultBlob, { contentType: "image/png", upsert: false });
-        if (uploadErr) console.error("[BG-REMOVAL] upload error:", uploadErr);
-        if (uploadData) {
+        if (!uploadErr && uploadData) {
           const { data: urlData } = supabase.storage
             .from("armo-selfies-test")
             .getPublicUrl(uploadData.path);
           setSelfieStorageUrl(urlData.publicUrl);
-          console.log("[BG-REMOVAL] uploaded ✓", urlData.publicUrl);
         }
       }
     } catch (err) {
       console.error("[BG-REMOVAL] ERROR:", err);
-      // Non mostriamo foto raw — manteniamo selfieDataUrl null e rimuoviamo il loading
     } finally {
       setSelfieProcessing(false);
     }
@@ -327,7 +514,6 @@ export default function TotemPage() {
 
   function confirmSelfie() {
     stopCamera();
-    // Lancia la rimozione sfondo in background — l'utente fa il quiz nel frattempo
     if (selfieDataUrl) processInBackground(selfieDataUrl);
     setScreen("quiz");
   }
@@ -339,28 +525,36 @@ export default function TotemPage() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
-  // ── End selfie helpers ──────────────────────────────────────────────────────
+  // ── Quiz ───────────────────────────────────────────────────────────────────
 
   function handleSelectAnswer(questionId: string, option: SelectedOption) {
-    setSelectedAnswers((prev) => ({ ...prev, [questionId]: option }));
+    if (autoAdvancing) return;
+    const newAnswers = { ...selectedAnswers, [questionId]: option };
+    setSelectedAnswers(newAnswers);
+    setAutoAdvancing(true);
+
+    setTimeout(() => {
+      setAutoAdvancing(false);
+      if (currentQuestionIndex < questions.length - 1) {
+        setCurrentQuestionIndex((prev) => prev + 1);
+      } else {
+        submitQuizWithAnswers(newAnswers);
+      }
+    }, 400);
   }
 
-  const answeredCount = Object.keys(selectedAnswers).length;
-  const allAnswered = questions.length > 0 && answeredCount === questions.length;
-
-  async function handleSubmitQuiz() {
-    if (!event || !allAnswered) return;
+  async function submitQuizWithAnswers(answers: Record<string, SelectedOption>) {
+    if (!event) return;
     setScreen("calculating");
 
-    // Build answers + compute scores from selections
     const finalAnswers: QuizAnswer[] = questions.map((q) => ({
       question_id: q.id,
-      selected_option: selectedAnswers[q.id],
+      selected_option: answers[q.id],
     }));
 
     const scores: ColorScores = questions.reduce(
       (acc, q) => {
-        const opt = selectedAnswers[q.id];
+        const opt = answers[q.id];
         return {
           verde:   acc.verde   + (opt === "a" ? q.option_a_verde   : q.option_b_verde),
           ciano:   acc.ciano   + (opt === "a" ? q.option_a_ciano   : q.option_b_ciano),
@@ -402,8 +596,10 @@ export default function TotemPage() {
         scores,
         profileName: (profileData as ArmoProfile)?.name || playResult.profile_key,
         claim: (profileData as ArmoProfile)?.claim || "",
+        photoUrl: selfieDataUrl ?? undefined,
       });
       setPostcardUrl(url);
+      uploadPostcardAndQr(url, playResult.session_id);
     } catch {
       // silent
     }
@@ -411,17 +607,46 @@ export default function TotemPage() {
     setTimeout(() => setScreen("result"), 1400);
   }
 
+  async function uploadPostcardAndQr(dataUrl: string, sessionId: string) {
+    if (!event) return;
+    try {
+      const res = await fetch(dataUrl);
+      const blob = await res.blob();
+      const filename = `postcards/${event.id}/${sessionId}.png`;
+      const { data: up, error: upErr } = await supabase.storage
+        .from("armo-selfies-test")
+        .upload(filename, blob, { contentType: "image/png", upsert: true });
+      if (upErr || !up) return;
+      const { data: urlData } = supabase.storage.from("armo-selfies-test").getPublicUrl(up.path);
+      const publicUrl = urlData.publicUrl;
+      const QRCode = await import("qrcode");
+      const qrDataUrl = await QRCode.toDataURL(publicUrl, { width: 400, margin: 1 });
+      setPostcardQrUrl(qrDataUrl);
+    } catch {
+      // silent
+    }
+  }
+
   function handleRestart() {
-    setAccessCode("");
-    setCodeError("");
-    setRegistrationId(null);
+    setAgeGroup(null);
+    setFormNome("");
+    setFormCognome("");
+    setFormEmail("");
+    setFormTelefono("");
+    setConsenso1(false);
+    setConsenso2(false);
+    setConsenso3(false);
+    setFormError("");
     setUserName("");
     setQuestions([]);
     setSelectedAnswers({});
+    setCurrentQuestionIndex(0);
+    setAutoAdvancing(false);
     setResult(null);
     setProfile(null);
     setFinalScores({ verde: 0, ciano: 0, magenta: 0 });
     setPostcardUrl(null);
+    setPostcardQrUrl(null);
     setSelfieDataUrl(null);
     setSelfieStorageUrl(null);
     setSelfieStep("idle");
@@ -432,494 +657,650 @@ export default function TotemPage() {
   }
 
   const gradient = scoresToGradient(finalScores);
+  const currentQuestion = questions[currentQuestionIndex];
 
   return (
     <div className="w-[1080px] min-h-[1920px] mx-auto relative bg-background text-foreground flex flex-col">
 
-      {/* Header: logo sempre visibile tranne nella schermata risultato (ha il suo header) */}
-      {screen !== "result" && screen !== "prize" && (
+      {/* Header logo — nascosto su intro (fullscreen) e result/prize */}
+      {screen !== "intro" && screen !== "result" && screen !== "prize" && (
         <header className="flex items-center justify-center pt-14 pb-8 shrink-0">
           <HeraLogo className="h-16 w-auto" />
         </header>
       )}
 
-      {/* Content */}
-      <div className="flex-1 flex flex-col items-center justify-center px-16 pb-16">
-
-        {/* LOADING */}
-        {screen === "loading" && (
+      {/* ── LOADING ── */}
+      {screen === "loading" && (
+        <div className="flex-1 flex items-center justify-center">
           <p className="text-muted-foreground text-2xl">Caricamento...</p>
-        )}
+        </div>
+      )}
 
-        {/* ERROR */}
-        {screen === "error" && (
+      {/* ── ERROR ── */}
+      {screen === "error" && (
+        <div className="flex-1 flex items-center justify-center">
           <div className="text-center space-y-8">
             <p className="text-destructive text-2xl">{error}</p>
             <button onClick={handleRestart} className="text-lg text-primary underline">Riprova</button>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* INTRO */}
-        {screen === "intro" && (
-          <div className="text-center space-y-16">
+      {/* ── INTRO — fullscreen CTA ── */}
+      {screen === "intro" && (
+        <div
+          className="w-full min-h-[1920px] flex flex-col items-center justify-between relative overflow-hidden"
+          style={{ background: `linear-gradient(160deg, ${HERA_COLORS.verde}dd, ${HERA_COLORS.ciano}cc, ${HERA_COLORS.magenta}dd)` }}
+        >
+          {/* Logo in alto */}
+          <div className="pt-16 pb-0">
+            <HeraLogo className="h-20 w-auto brightness-0 invert" />
+          </div>
+
+          {/* Contenuto centrale */}
+          <div className="flex-1 flex flex-col items-center justify-center px-16 gap-14 text-center">
+            {/* Placeholder immagine CTA */}
+            <div
+              className="w-[720px] h-[720px] rounded-3xl flex items-center justify-center"
+              style={{ background: "rgba(255,255,255,0.12)", border: "2px dashed rgba(255,255,255,0.4)" }}
+            >
+              <div className="text-center space-y-4">
+                <div className="text-8xl">🎨</div>
+                <p className="text-white/60 text-2xl font-medium">
+                  Immagine CTA evento<br />
+                  <span className="text-lg opacity-60">(placeholder — da sostituire con asset HERA)</span>
+                </p>
+              </div>
+            </div>
+
             <div className="space-y-6">
-              <h1 className="text-7xl font-bold tracking-tight leading-tight text-foreground">
-                LA TUA<br />ARMOCROMIA<br />
-                <span
-                  className="bg-clip-text text-transparent"
-                  style={{ backgroundImage: `linear-gradient(90deg, ${HERA_COLORS.verde}, ${HERA_COLORS.ciano}, ${HERA_COLORS.magenta})` }}
-                >
-                  HERAVIGLIOSA
-                </span>
+              <h1 className="text-7xl font-black tracking-tight leading-none text-white drop-shadow-lg">
+                LA TUA ARMOCROMIA<br />
+                <span className="text-white/90">HERAVIGLIOSA</span>
               </h1>
-              <p className="text-2xl text-muted-foreground max-w-[700px] mx-auto leading-relaxed">
-                Scopri il tuo profilo attraverso le tue scelte quotidiane
+              <p className="text-2xl text-white/80 leading-relaxed max-w-[680px] mx-auto">
+                Scopri il tuo profilo armocromatico attraverso le tue scelte quotidiane
               </p>
             </div>
-            <p className="text-xl text-muted-foreground/70 italic">
-              Ogni scelta lascia il suo colore. Ogni colore racconta chi sei.
-            </p>
+
             <button
-              onClick={() => { setAccessCode(""); setCodeError(""); setScreen("code_entry"); }}
-              className="text-3xl font-semibold px-16 py-6 rounded-full text-white transition-transform hover:scale-105 shadow-lg"
-              style={{ background: `linear-gradient(135deg, ${HERA_COLORS.verde}, ${HERA_COLORS.ciano}, ${HERA_COLORS.magenta})` }}
+              onClick={() => setScreen("age_selection")}
+              className="text-3xl font-black px-20 py-7 rounded-full text-foreground bg-white shadow-2xl hover:scale-105 transition-transform"
             >
-              INIZIA
+              PARTECIPA
             </button>
           </div>
-        )}
 
-        {/* CODE ENTRY */}
-        {screen === "code_entry" && (
-          <div className="text-center space-y-12 w-full max-w-[700px]">
-            <div className="space-y-4">
-              <h2 className="text-5xl font-bold text-foreground">Inserisci il tuo codice</h2>
-              <p className="text-2xl text-muted-foreground">
-                Hai ricevuto un codice di accesso dopo la registrazione
-              </p>
+          {/* Footer */}
+          <div className="pb-16">
+            <p className="text-white/50 text-lg">Tocca per iniziare</p>
+          </div>
+        </div>
+      )}
+
+      {/* ── AGE SELECTION ── */}
+      {screen === "age_selection" && (
+        <div className="flex-1 flex flex-col items-center justify-center px-16 pb-16 gap-16">
+          <div className="text-center space-y-4">
+            <h2 className="text-6xl font-black text-foreground tracking-tight">
+              Quanti anni hai?
+            </h2>
+            <p className="text-2xl text-muted-foreground">
+              Scegli la tua fascia generazionale
+            </p>
+          </div>
+
+          <div className="flex gap-8 w-full max-w-[900px]">
+            {/* Box Millennial & Gen Z */}
+            <button
+              onClick={() => handleAgeSelect("young")}
+              className="flex-1 flex flex-col items-center gap-6 py-16 px-8 rounded-3xl border-4 border-transparent hover:border-primary transition-all hover:scale-[1.02] shadow-xl text-center group"
+              style={{ background: `linear-gradient(135deg, ${HERA_COLORS.verde}22, ${HERA_COLORS.ciano}22)` }}
+            >
+              <span className="text-8xl">✨</span>
+              <div className="space-y-3">
+                <p className="text-4xl font-black text-foreground">Millennial & Gen Z</p>
+                <p className="text-2xl text-muted-foreground font-semibold">nati dal 1982</p>
+                <p className="text-lg text-muted-foreground/70">(1982 – oggi)</p>
+              </div>
+            </button>
+
+            {/* Box Gen X & Boomer */}
+            <button
+              onClick={() => handleAgeSelect("classic")}
+              className="flex-1 flex flex-col items-center gap-6 py-16 px-8 rounded-3xl border-4 border-transparent hover:border-primary transition-all hover:scale-[1.02] shadow-xl text-center group"
+              style={{ background: `linear-gradient(135deg, ${HERA_COLORS.ciano}22, ${HERA_COLORS.magenta}22)` }}
+            >
+              <span className="text-8xl">🌟</span>
+              <div className="space-y-3">
+                <p className="text-4xl font-black text-foreground">Gen X & Boomer</p>
+                <p className="text-2xl text-muted-foreground font-semibold">nati prima del 1982</p>
+                <p className="text-lg text-muted-foreground/70">(fino al 1981)</p>
+              </div>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── FORM ── */}
+      {screen === "form" && (
+        <div className="flex-1 flex flex-col items-center justify-center px-16 pb-16 gap-12 w-full">
+          {/* Banner temporaneo */}
+          <div className="w-full max-w-[780px] bg-red-50 border-2 border-red-400 rounded-2xl px-8 py-4 flex items-center gap-4">
+            <span className="text-red-500 text-3xl">⚠️</span>
+            <p className="text-red-600 font-bold text-lg">
+              FORM TEMPORANEO — verrà integrato con Suitalk prima del go-live
+            </p>
+          </div>
+
+          <div className="w-full max-w-[780px] space-y-6">
+            <div className="text-center space-y-3">
+              <h2 className="text-5xl font-black text-foreground tracking-tight">Registrati</h2>
+              <p className="text-xl text-muted-foreground">Inserisci i tuoi dati per partecipare</p>
             </div>
 
-            <div className="space-y-6">
+            <div className="grid grid-cols-2 gap-5">
+              <div className="space-y-2">
+                <label className="text-lg font-semibold text-foreground">Nome *</label>
+                <input
+                  type="text"
+                  value={formNome}
+                  onChange={(e) => setFormNome(e.target.value)}
+                  placeholder="Mario"
+                  className="w-full text-xl px-6 py-4 rounded-2xl border-2 border-border bg-card text-foreground placeholder-muted-foreground/40 focus:border-primary outline-none transition-colors"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-lg font-semibold text-foreground">Cognome *</label>
+                <input
+                  type="text"
+                  value={formCognome}
+                  onChange={(e) => setFormCognome(e.target.value)}
+                  placeholder="Rossi"
+                  className="w-full text-xl px-6 py-4 rounded-2xl border-2 border-border bg-card text-foreground placeholder-muted-foreground/40 focus:border-primary outline-none transition-colors"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-lg font-semibold text-foreground">Email *</label>
               <input
-                type="text"
-                inputMode="text"
-                value={accessCode}
-                onChange={(e) => { setAccessCode(e.target.value.toUpperCase().slice(0, 5)); setCodeError(""); }}
-                placeholder="es. AB3K7"
-                className="w-[340px] text-center text-6xl font-black tracking-[0.25em] font-mono bg-transparent border-b-4 border-border focus:border-primary outline-none py-4 placeholder-muted-foreground/30 text-foreground uppercase"
-                autoComplete="off"
-                maxLength={5}
+                type="email"
+                inputMode="email"
+                value={formEmail}
+                onChange={(e) => setFormEmail(e.target.value)}
+                placeholder="mario.rossi@email.it"
+                className="w-full text-xl px-6 py-4 rounded-2xl border-2 border-border bg-card text-foreground placeholder-muted-foreground/40 focus:border-primary outline-none transition-colors"
               />
+            </div>
 
-              {/* Errore + QR code */}
-              {codeError && (
-                <div className="space-y-6">
-                  <p className="text-xl text-destructive font-semibold">{codeError}</p>
-                  <div className="flex flex-col items-center gap-4">
-                    <p className="text-lg text-muted-foreground">Non sei ancora registrato/a?</p>
-                    <canvas ref={qrRef} className="rounded-xl shadow-md" />
-                    <p className="text-base text-muted-foreground">
-                      Scansiona il QR per registrarti
-                    </p>
-                  </div>
-                </div>
-              )}
+            <div className="space-y-2">
+              <label className="text-lg font-semibold text-foreground">Telefono *</label>
+              <input
+                type="tel"
+                inputMode="tel"
+                value={formTelefono}
+                onChange={(e) => setFormTelefono(e.target.value)}
+                placeholder="+39 333 1234567"
+                className="w-full text-xl px-6 py-4 rounded-2xl border-2 border-border bg-card text-foreground placeholder-muted-foreground/40 focus:border-primary outline-none transition-colors"
+              />
+            </div>
 
-              {/* Suggerimenti codici test — ⚠️ rimuovere prima del go-live */}
-              <div className="flex gap-3 justify-center flex-wrap">
-                {[{ code: "YOUNG", label: "Young (1982+)" }, { code: "BOOME", label: "Classic (<1982)" }].map(({ code, label }) => (
-                  <button
-                    key={code}
-                    type="button"
-                    onClick={() => { setAccessCode(code); setCodeError(""); }}
-                    className="text-sm px-4 py-2 rounded-full border border-dashed border-muted-foreground/40 text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+            {/* Consensi */}
+            <div className="space-y-4 pt-2">
+              {[
+                {
+                  key: "c1",
+                  value: consenso1,
+                  setter: setConsenso1,
+                  label: "Acconsento al trattamento dei dati personali ai sensi dell'art. 13 del GDPR (EU 2016/679)",
+                  required: true,
+                },
+                {
+                  key: "c2",
+                  value: consenso2,
+                  setter: setConsenso2,
+                  label: "Acconsento alla ricezione di comunicazioni commerciali e promozionali da parte di HERA",
+                  required: false,
+                },
+                {
+                  key: "c3",
+                  value: consenso3,
+                  setter: setConsenso3,
+                  label: "Acconsento alla profilazione dei miei dati per finalità di marketing personalizzato",
+                  required: false,
+                },
+              ].map(({ key, value, setter, label, required }) => (
+                <button
+                  key={key}
+                  onClick={() => setter(!value)}
+                  className="w-full flex items-start gap-5 text-left py-4 px-5 rounded-2xl border-2 transition-all"
+                  style={{ borderColor: value ? HERA_COLORS.verde : "hsl(var(--border))", background: value ? `${HERA_COLORS.verde}11` : "transparent" }}
+                >
+                  <div
+                    className="w-8 h-8 rounded-lg shrink-0 mt-0.5 border-2 flex items-center justify-center transition-all"
+                    style={{ borderColor: value ? HERA_COLORS.verde : "hsl(var(--border))", background: value ? HERA_COLORS.verde : "transparent" }}
                   >
-                    {code} <span className="opacity-60">— {label}</span>
-                  </button>
-                ))}
+                    {value && <span className="text-white font-bold text-sm">✓</span>}
+                  </div>
+                  <span className="text-lg text-foreground/80 leading-snug">
+                    {label}
+                    {required ? (
+                      <span className="text-destructive ml-1">*</span>
+                    ) : (
+                      <span className="text-muted-foreground ml-1">(facoltativo)</span>
+                    )}
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            {formError && (
+              <p className="text-destructive text-lg font-semibold text-center">{formError}</p>
+            )}
+
+            <button
+              onClick={handleFormSubmit}
+              disabled={formLoading}
+              className="w-full text-2xl font-black py-6 rounded-full text-white transition-all hover:scale-[1.02] shadow-lg disabled:opacity-50"
+              style={{ background: `linear-gradient(135deg, ${HERA_COLORS.verde}, ${HERA_COLORS.ciano}, ${HERA_COLORS.magenta})` }}
+            >
+              {formLoading ? "Salvataggio..." : "AVANTI →"}
+            </button>
+
+            <p className="text-center text-muted-foreground/60 text-base">
+              * campi obbligatori
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ── SELFIE ── */}
+      {screen === "selfie" && (
+        <div className="flex-1 flex flex-col items-center justify-center px-16 pb-16 gap-10 w-full max-w-[700px] mx-auto">
+          <canvas ref={captureCanvasRef} className="hidden" />
+          <input ref={fileInputRef} type="file" accept="image/jpeg,image/jpg,image/png,image/webp" className="hidden" onChange={handleFileUpload} />
+
+          {selfieStep === "idle" && (
+            <>
+              <div className="space-y-4 text-center">
+                <h2 className="text-5xl font-black text-foreground">Scatta la tua foto</h2>
+                <p className="text-2xl text-muted-foreground leading-relaxed">
+                  {userName ? `Ciao ${userName.split(" ")[0]}! ` : ""}Il tuo ritratto entrerà nel gradiente personale.
+                </p>
               </div>
 
-              <button
-                onClick={handleCodeSubmit}
-                disabled={codeLoading || accessCode.trim().length < 5}
-                className="text-2xl font-bold px-14 py-6 rounded-full text-white disabled:opacity-30 transition-all hover:scale-105 shadow-lg"
+              {selfieError && (
+                <p className="text-lg text-destructive font-medium">{selfieError}</p>
+              )}
+
+              <div className="flex flex-col items-center gap-5 w-full">
+                <button
+                  onClick={startCamera}
+                  className="flex items-center gap-4 text-2xl font-bold px-14 py-6 rounded-full text-white shadow-lg hover:scale-105 transition-transform"
+                  style={{ background: `linear-gradient(135deg, ${HERA_COLORS.verde}, ${HERA_COLORS.ciano}, ${HERA_COLORS.magenta})` }}
+                >
+                  📷 APRI FOTOCAMERA
+                </button>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex items-center gap-4 text-xl font-semibold px-12 py-5 rounded-full border-2 border-primary text-primary hover:bg-primary/5 transition-colors"
+                >
+                  🖼️ CARICA UNA FOTO
+                </button>
+                <button onClick={skipSelfie} className="text-xl py-4 px-8 text-muted-foreground underline mt-2">
+                  Salta questo passaggio
+                </button>
+              </div>
+            </>
+          )}
+
+          {selfieStep === "capturing" && (
+            <>
+              <div className="space-y-4 text-center">
+                <h2 className="text-5xl font-black text-foreground">Mettiti in posa!</h2>
+                <p className="text-xl text-muted-foreground">Centra il viso e scatta quando sei pronto/a</p>
+              </div>
+              <div className="relative mx-auto" style={{ width: 400, height: 400 }}>
+                <div
+                  className="absolute inset-0 rounded-full overflow-hidden border-8 border-transparent"
+                  style={{ background: `linear-gradient(white, white) padding-box, linear-gradient(135deg, ${HERA_COLORS.verde}, ${HERA_COLORS.ciano}, ${HERA_COLORS.magenta}) border-box` }}
+                >
+                  <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover scale-x-[-1]" />
+                </div>
+              </div>
+              <div className="flex flex-col items-center gap-4">
+                <button
+                  onClick={capturePhoto}
+                  className="w-24 h-24 rounded-full text-white text-5xl flex items-center justify-center shadow-xl hover:scale-110 transition-transform"
+                  style={{ background: `linear-gradient(135deg, ${HERA_COLORS.verde}, ${HERA_COLORS.ciano}, ${HERA_COLORS.magenta})` }}
+                >
+                  📸
+                </button>
+                <button onClick={() => { stopCamera(); setSelfieStep("idle"); }} className="text-xl py-4 px-8 text-muted-foreground underline">
+                  Annulla
+                </button>
+              </div>
+            </>
+          )}
+
+          {selfieStep === "preview" && selfieDataUrl && (
+            <>
+              <div className="space-y-3 text-center">
+                <h2 className="text-5xl font-black text-foreground">Ti piace?</h2>
+                <p className="text-xl text-muted-foreground">Se sei soddisfatto/a, procedi al quiz</p>
+              </div>
+              <div className="relative mx-auto flex items-center justify-center" style={{ width: 340, height: 340 }}>
+                <div
+                  className="rounded-full p-5 shadow-2xl"
+                  style={{ background: `linear-gradient(135deg, ${HERA_COLORS.verde}, ${HERA_COLORS.ciano}, ${HERA_COLORS.magenta})`, width: 340, height: 340 }}
+                >
+                  <div className="rounded-full w-full h-full overflow-hidden" style={{ background: "#e8e0ec" }}>
+                    <img src={selfieDataUrl} alt="Selfie" className="w-full h-full object-cover" />
+                  </div>
+                </div>
+              </div>
+              <div className="flex flex-col items-center gap-4">
+                <button
+                  onClick={confirmSelfie}
+                  className="text-2xl font-bold px-14 py-6 rounded-full text-white shadow-lg hover:scale-105 transition-transform"
+                  style={{ background: `linear-gradient(135deg, ${HERA_COLORS.verde}, ${HERA_COLORS.ciano}, ${HERA_COLORS.magenta})` }}
+                >
+                  ✓ OTTIMA! PROCEDI
+                </button>
+                <button onClick={retrySelfie} className="text-xl py-4 px-8 text-muted-foreground underline">
+                  Riprova
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* ── QUIZ — 1 domanda per schermata ── */}
+      {screen === "quiz" && currentQuestion && (
+        <div className="flex-1 flex flex-col items-center justify-center px-16 pb-16 gap-0 w-full max-w-[920px] mx-auto">
+          {/* Progress */}
+          <div className="w-full mb-10">
+            <div className="flex justify-between items-center mb-3">
+              <p className="text-lg font-semibold text-muted-foreground uppercase tracking-widest">
+                Domanda {currentQuestionIndex + 1} di {questions.length}
+              </p>
+            </div>
+            <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-500"
                 style={{
-                  background: accessCode.trim().length === 5
-                    ? `linear-gradient(135deg, ${HERA_COLORS.verde}, ${HERA_COLORS.ciano}, ${HERA_COLORS.magenta})`
-                    : "#cecece",
+                  width: `${((currentQuestionIndex) / questions.length) * 100}%`,
+                  background: `linear-gradient(90deg, ${HERA_COLORS.verde}, ${HERA_COLORS.ciano})`,
                 }}
-              >
-                {codeLoading ? "Verifica in corso..." : "ACCEDI ALL'EXPERIENCE"}
-              </button>
+              />
             </div>
           </div>
-        )}
 
-        {/* SELFIE */}
-        {screen === "selfie" && (
-          <div className="text-center space-y-10 w-full max-w-[700px]">
-            {/* hidden canvas for capture */}
-            <canvas ref={captureCanvasRef} className="hidden" />
-            <input ref={fileInputRef} type="file" accept="image/jpeg,image/jpg,image/png,image/webp,image/gif" className="hidden" onChange={handleFileUpload} />
+          {/* Domanda */}
+          <div className="w-full space-y-10">
+            <h3 className="text-3xl font-black text-foreground leading-snug">
+              {currentQuestion.question_text}
+            </h3>
 
-            {selfieStep === "idle" && (
-              <>
-                <div className="space-y-4">
-                  <h2 className="text-5xl font-bold text-foreground">Scatta la tua foto</h2>
-                  <p className="text-2xl text-muted-foreground leading-relaxed">
-                    {userName ? `Ciao ${userName}! ` : ""}Il tuo ritratto entrerà nel gradiente personale.
-                  </p>
-                </div>
-
-                {selfieError && (
-                  <p className="text-lg text-destructive font-medium">{selfieError}</p>
-                )}
-
-                <div className="flex flex-col items-center gap-5">
-                  <button
-                    onClick={startCamera}
-                    className="flex items-center gap-4 text-2xl font-bold px-14 py-6 rounded-full text-white shadow-lg hover:scale-105 transition-transform"
-                    style={{ background: `linear-gradient(135deg, ${HERA_COLORS.verde}, ${HERA_COLORS.ciano}, ${HERA_COLORS.magenta})` }}
-                  >
-                    📷 APRI FOTOCAMERA
-                  </button>
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="flex items-center gap-4 text-xl font-semibold px-12 py-5 rounded-full border-2 border-primary text-primary hover:bg-primary/5 transition-colors"
-                  >
-                    🖼️ CARICA UNA FOTO
-                  </button>
-                  <button onClick={skipSelfie} className="text-lg text-muted-foreground underline mt-2">
-                    Salta questo passaggio
-                  </button>
-                </div>
-              </>
-            )}
-
-            {selfieStep === "capturing" && (
-              <>
-                <div className="space-y-4">
-                  <h2 className="text-5xl font-bold text-foreground">Mettiti in posa!</h2>
-                  <p className="text-xl text-muted-foreground">Centra il viso e scatta quando sei pronto/a</p>
-                </div>
-                {/* Anteprima camera con maschera circolare */}
-                <div className="relative mx-auto" style={{ width: 400, height: 400 }}>
-                  <div className="absolute inset-0 rounded-full overflow-hidden border-8 border-transparent"
-                    style={{ background: `linear-gradient(white, white) padding-box, linear-gradient(135deg, ${HERA_COLORS.verde}, ${HERA_COLORS.ciano}, ${HERA_COLORS.magenta}) border-box` }}
-                  >
-                    <video
-                      ref={videoRef}
-                      autoPlay
-                      playsInline
-                      muted
-                      className="w-full h-full object-cover scale-x-[-1]"
-                    />
-                  </div>
-                </div>
-                <div className="flex flex-col items-center gap-4">
-                  <button
-                    onClick={capturePhoto}
-                    className="w-24 h-24 rounded-full text-white text-5xl flex items-center justify-center shadow-xl hover:scale-110 transition-transform"
-                    style={{ background: `linear-gradient(135deg, ${HERA_COLORS.verde}, ${HERA_COLORS.ciano}, ${HERA_COLORS.magenta})` }}
-                  >
-                    📸
-                  </button>
-                  <button onClick={() => { stopCamera(); setSelfieStep("idle"); }} className="text-lg text-muted-foreground underline">
-                    Annulla
-                  </button>
-                </div>
-              </>
-            )}
-
-{selfieStep === "preview" && selfieDataUrl && (
-              <>
-                <div className="space-y-3">
-                  <h2 className="text-5xl font-bold text-foreground">Ti piace?</h2>
-                  <p className="text-xl text-muted-foreground">Se sei soddisfatto/a, procedi al quiz</p>
-                </div>
-                {/* Preview composita: selfie dentro anello */}
-                <div className="relative mx-auto flex items-center justify-center" style={{ width: 340, height: 340 }}>
-                  <div
-                    className="rounded-full p-5 shadow-2xl"
-                    style={{
-                      background: `linear-gradient(135deg, ${HERA_COLORS.verde}, ${HERA_COLORS.ciano}, ${HERA_COLORS.magenta})`,
-                      width: 340, height: 340,
-                    }}
-                  >
-                    <div className="rounded-full w-full h-full overflow-hidden bg-[#e8e0ec]">
-                      <img src={selfieDataUrl} alt="Selfie" className="w-full h-full object-cover" />
-                    </div>
-                  </div>
-                </div>
-                <div className="flex flex-col items-center gap-4">
-                  <button
-                    onClick={confirmSelfie}
-                    className="text-2xl font-bold px-14 py-6 rounded-full text-white shadow-lg hover:scale-105 transition-transform"
-                    style={{ background: `linear-gradient(135deg, ${HERA_COLORS.verde}, ${HERA_COLORS.ciano}, ${HERA_COLORS.magenta})` }}
-                  >
-                    ✓ OTTIMA! PROCEDI
-                  </button>
-                  <button onClick={retrySelfie} className="text-lg text-muted-foreground underline">
-                    Riprova
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-        )}
-
-        {/* QUIZ — tutte le domande visibili, scorrevoli */}
-        {screen === "quiz" && questions.length > 0 && (
-          <div className="w-full max-w-[920px] flex flex-col gap-0">
-
-            {/* Header fisso */}
-            <div className="text-center pb-10">
-              <h2 className="text-4xl font-bold text-foreground">Scegli la risposta</h2>
-              <p className="text-xl text-muted-foreground mt-2">
-                Che rappresenta di più il tuo stile di vita
-              </p>
-              <p className="text-base text-muted-foreground/60 mt-1">
-                {answeredCount} di {questions.length} risposte selezionate
-              </p>
-            </div>
-
-            {/* Domande */}
-            <div className="flex flex-col gap-10">
-              {questions.map((q, idx) => {
-                const selected = selectedAnswers[q.id];
+            <div className="flex flex-col gap-5">
+              {(["a", "b"] as SelectedOption[]).map((opt) => {
+                const icon = opt === "a" ? currentQuestion.option_a_icon : currentQuestion.option_b_icon;
+                const text = opt === "a" ? currentQuestion.option_a_text : currentQuestion.option_b_text;
+                const isSelected = selectedAnswers[currentQuestion.id] === opt;
                 return (
-                  <div key={q.id} className="space-y-4">
-                    {/* Numero domanda */}
-                    <p className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">
-                      {idx + 1}
-                    </p>
-                    {/* Testo domanda */}
-                    <h3 className="text-2xl font-bold text-foreground leading-snug">
-                      {q.question_text}
-                    </h3>
-                    {/* Opzioni */}
-                    <div className="flex flex-col gap-3">
-                      {(["a", "b"] as SelectedOption[]).map((opt) => {
-                        const icon = opt === "a" ? q.option_a_icon : q.option_b_icon;
-                        const text = opt === "a" ? q.option_a_text : q.option_b_text;
-                        const isSelected = selected === opt;
-                        return (
-                          <button
-                            key={opt}
-                            onClick={() => handleSelectAnswer(q.id, opt)}
-                            className={`flex items-center gap-6 text-left px-8 py-6 rounded-2xl border-2 transition-all duration-150 ${
-                              isSelected
-                                ? "border-primary bg-primary/5 shadow-md scale-[1.01]"
-                                : "border-border bg-card hover:border-primary/50 hover:shadow-md"
-                            }`}
-                          >
-                            <span className="text-4xl shrink-0">{icon}</span>
-                            <span className={`text-xl font-medium leading-snug ${isSelected ? "text-primary" : "text-foreground"}`}>
-                              {text}
-                            </span>
-                            {isSelected && (
-                              <span className="ml-auto text-primary text-2xl shrink-0">✓</span>
-                            )}
-                          </button>
-                        );
-                      })}
+                  <button
+                    key={opt}
+                    onClick={() => handleSelectAnswer(currentQuestion.id, opt)}
+                    disabled={autoAdvancing}
+                    aria-pressed={isSelected}
+                    className={`flex items-center gap-6 text-left px-8 py-7 rounded-2xl border-2 transition-all duration-200 ${
+                      isSelected
+                        ? "border-primary bg-primary/5 shadow-md scale-[1.01]"
+                        : "border-border bg-card hover:border-primary/50 hover:shadow-md"
+                    } ${autoAdvancing ? "pointer-events-none" : ""}`}
+                  >
+                    <span className="text-5xl shrink-0">{icon}</span>
+                    <span className={`text-2xl font-semibold leading-snug ${isSelected ? "text-primary" : "text-foreground"}`}>
+                      {text}
+                    </span>
+                    {isSelected && (
+                      <span className="ml-auto text-primary text-3xl shrink-0">✓</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Pulsante test — solo in sviluppo */}
+          {process.env.NODE_ENV === "development" && (
+            <button
+              onClick={() => {
+                const autoAnswers: Record<string, SelectedOption> = {};
+                questions.forEach((q) => { autoAnswers[q.id] = "a"; });
+                submitQuizWithAnswers(autoAnswers);
+              }}
+              className="mt-16 text-xs text-muted-foreground/40 underline underline-offset-2 hover:text-muted-foreground/60"
+            >
+              [dev] auto-rispondi tutto
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* ── CALCULATING ── */}
+      {screen === "calculating" && (
+        <div className="flex-1 flex flex-col items-center justify-center gap-8">
+          <div className="w-32 h-32 rounded-full border-4 border-muted border-t-primary mx-auto animate-spin" />
+          <p className="text-3xl font-bold text-foreground">Stiamo elaborando il tuo profilo...</p>
+          <p className="text-xl text-muted-foreground">Il tuo gradiente è unico e irripetibile</p>
+        </div>
+      )}
+
+      {/* ── RESULT ── */}
+      {screen === "result" && result && (
+        <div
+          className="w-full min-h-[1920px] flex flex-col"
+          style={{ background: `linear-gradient(160deg, ${HERA_COLORS.verde}18, ${HERA_COLORS.ciano}18, ${HERA_COLORS.magenta}18)` }}
+        >
+          <div className="flex items-center justify-center pt-14 pb-4 shrink-0">
+            <HeraLogo className="h-16 w-auto" />
+          </div>
+
+          <div className="flex-1 flex flex-col items-center px-16 pb-16 gap-10">
+            {/* Eyebrow */}
+            <p className="text-xl font-semibold text-muted-foreground uppercase tracking-widest text-center">
+              IL TUO GRADIENTE HERA
+            </p>
+
+            {/* Foto con anello gradiente — focal point principale */}
+            <div
+              className="rounded-full p-5 shadow-2xl"
+              style={{ background: gradient.css, width: 380, height: 380 }}
+            >
+              <div className="rounded-full w-full h-full overflow-hidden flex items-center justify-center" style={{ background: "#e8e0ec" }}>
+                {selfieProcessing ? (
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="w-12 h-12 rounded-full border-4 border-white/40 border-t-white animate-spin" />
+                    <span className="text-white/80 text-xs font-medium">elaborazione...</span>
+                  </div>
+                ) : selfieDataUrl ? (
+                  <img src={selfieDataUrl} alt="Profilo" className="w-full h-full object-cover" />
+                ) : (
+                  <img src="/brand/placeholder-person.svg" alt="Profilo" className="w-full h-full object-cover" />
+                )}
+              </div>
+            </div>
+
+            {/* Nome profilo */}
+            <div className="text-center space-y-3">
+              <h2 className="text-6xl font-black text-foreground tracking-tight leading-none">
+                {profile?.name || result.profile_key.toUpperCase()}
+              </h2>
+              {profile?.claim && (
+                <p className="text-2xl text-foreground/70 italic max-w-[680px] mx-auto">
+                  {profile.claim}
+                </p>
+              )}
+            </div>
+
+            {/* Barra gradiente */}
+            <div className="w-full max-w-[580px] h-5 rounded-full shadow-md" style={{ background: gradient.css }} />
+
+            {/* Score V/C/M */}
+            <div className="flex justify-center gap-12">
+              {[
+                { key: "verde",   score: result.score_verde },
+                { key: "magenta", score: result.score_magenta },
+                { key: "ciano",   score: result.score_ciano },
+              ].map(({ key, score }) => {
+                const cat = CATEGORY_ICONS[key];
+                return (
+                  <div key={key} className="flex flex-col items-center gap-2">
+                    <div
+                      className="w-18 h-18 rounded-full flex items-center justify-center text-4xl"
+                      style={{ width: 72, height: 72, backgroundColor: cat.color + "22", border: `3px solid ${cat.color}` }}
+                    >
+                      {cat.icon}
                     </div>
+                    <span className="text-2xl font-black" style={{ color: cat.color }}>{score}</span>
+                    <span className="text-sm text-muted-foreground font-semibold uppercase tracking-wider">{cat.label}</span>
                   </div>
                 );
               })}
             </div>
 
-            {/* CTA submit */}
-            <div className="pt-14 pb-4 text-center">
-              <button
-                onClick={handleSubmitQuiz}
-                disabled={!allAnswered}
-                className="text-2xl font-bold px-16 py-6 rounded-full text-white transition-all disabled:opacity-30 disabled:scale-100 hover:scale-105 shadow-lg"
-                style={{
-                  background: allAnswered
-                    ? `linear-gradient(135deg, ${HERA_COLORS.verde}, ${HERA_COLORS.ciano}, ${HERA_COLORS.magenta})`
-                    : "#cecece",
-                }}
-              >
-                SCOPRI IL TUO GRADIENTE
-              </button>
-              {!allAnswered && (
-                <p className="text-muted-foreground text-base mt-4">
-                  Rispondi a tutte le domande per continuare
-                </p>
-              )}
-            </div>
-          </div>
-        )}
+            {/* Descrizione */}
+            {profile?.description && (
+              <p className="text-xl text-muted-foreground max-w-[680px] mx-auto text-center leading-relaxed">
+                {profile.description}
+              </p>
+            )}
 
-        {/* CALCULATING */}
-        {screen === "calculating" && (
-          <div className="text-center space-y-8">
-            <div className="w-32 h-32 rounded-full border-4 border-muted border-t-primary mx-auto animate-spin" />
-            <p className="text-3xl font-bold text-foreground">Stiamo elaborando il tuo profilo...</p>
-            <p className="text-xl text-muted-foreground">Il tuo gradiente è unico e irripetibile</p>
-          </div>
-        )}
-
-        {/* RESULT */}
-        {screen === "result" && result && (
-          <div className="w-full min-h-[1920px] flex flex-col" style={{ background: `linear-gradient(160deg, ${HERA_COLORS.verde}22, ${HERA_COLORS.ciano}22, ${HERA_COLORS.magenta}22)` }}>
-            {/* Header risultato */}
-            <div className="flex items-center justify-center pt-14 pb-6 shrink-0">
-              <HeraLogo className="h-16 w-auto" />
-            </div>
-
-            <div className="flex-1 flex flex-col items-center px-16 pb-16 gap-10">
-              {/* Titolo */}
-              <div className="text-center space-y-3">
-                <h2 className="text-5xl font-bold text-foreground tracking-tight">
-                  IL TUO GRADIENTE HERA
-                </h2>
-                <p className="text-xl text-muted-foreground max-w-[680px] mx-auto leading-relaxed">
-                  Le tue scelte quotidiane hanno creato un gradiente unico e irripetibile.
-                  <br />Ecco il tuo profilo.
-                </p>
-              </div>
-
-              {/* Foto con anello gradiente */}
-              <div className="relative flex items-center justify-center">
-                {/* Anello gradiente esterno */}
-                <div
-                  className="rounded-full p-5 shadow-2xl"
-                  style={{
-                    background: gradient.css,
-                    width: 340,
-                    height: 340,
-                  }}
+            {/* CTA */}
+            <div className="flex flex-col items-center gap-6 pt-4 w-full max-w-[700px]">
+              {/* Premio se disponibile */}
+              {result.code && (
+                <button
+                  onClick={() => setScreen("prize")}
+                  className="w-full flex items-center justify-center gap-4 text-2xl font-bold px-12 py-6 rounded-full text-white transition-transform hover:scale-105 shadow-xl"
+                  style={{ background: `linear-gradient(135deg, ${HERA_COLORS.verde}, ${HERA_COLORS.ciano}, ${HERA_COLORS.magenta})` }}
                 >
-                  {/* Foto dentro */}
-                  <div className="rounded-full w-full h-full overflow-hidden bg-[#e8e0ec] flex items-center justify-center">
-                    {selfieProcessing ? (
-                      // Rimozione sfondo in corso
-                      <div className="flex flex-col items-center gap-3">
-                        <div className="w-12 h-12 rounded-full border-4 border-white/40 border-t-white animate-spin" />
-                        <span className="text-white/80 text-xs font-medium">elaborazione...</span>
-                      </div>
-                    ) : selfieDataUrl ? (
-                      <img src={selfieDataUrl} alt="Profilo" className="w-full h-full object-cover" />
-                    ) : (
-                      <img src="/brand/placeholder-person.svg" alt="Profilo" className="w-full h-full object-cover" />
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Nome profilo */}
-              <div className="text-center space-y-2">
-                <p className="text-lg text-muted-foreground uppercase tracking-widest font-semibold">
-                  IL TUO GRADIENTE
-                </p>
-                <h3 className="text-4xl font-bold text-foreground">
-                  {profile?.name || result.profile_key.toUpperCase()}
-                </h3>
-                <p className="text-2xl text-foreground/70 italic max-w-[700px] mx-auto mt-2">
-                  {profile?.claim || ""}
-                </p>
-              </div>
-
-              {/* Categorie con score */}
-              <div className="flex justify-center gap-16">
-                {[
-                  { key: "verde",   score: result.score_verde },
-                  { key: "magenta", score: result.score_magenta },
-                  { key: "ciano",   score: result.score_ciano },
-                ].map(({ key, score }) => {
-                  const cat = CATEGORY_ICONS[key];
-                  return (
-                    <div key={key} className="flex flex-col items-center gap-2">
-                      <div
-                        className="w-20 h-20 rounded-full flex items-center justify-center text-4xl"
-                        style={{ backgroundColor: cat.color + "22", border: `3px solid ${cat.color}` }}
-                      >
-                        {cat.icon}
-                      </div>
-                      <span className="text-2xl font-bold" style={{ color: cat.color }}>{score}</span>
-                      <span className="text-sm text-muted-foreground font-semibold uppercase tracking-wider">{cat.label}</span>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Barra gradiente decorativa */}
-              <div
-                className="w-full max-w-[600px] h-6 rounded-full shadow-lg"
-                style={{ background: gradient.css }}
-              />
-
-              {/* Descrizione */}
-              {profile?.description && (
-                <p className="text-xl text-muted-foreground max-w-[680px] mx-auto text-center leading-relaxed">
-                  {profile.description}
-                </p>
+                  🏆 SCOPRI SE HAI VINTO UN PREMIO
+                </button>
               )}
 
-              {/* CTA */}
-              <div className="flex flex-col items-center gap-5 pt-4 w-full max-w-[700px]">
-                {result.code && (
-                  <button
-                    onClick={() => setScreen("prize")}
-                    className="w-full flex items-center justify-center gap-4 text-2xl font-bold px-12 py-6 rounded-full text-white transition-transform hover:scale-105 shadow-xl"
-                    style={{ background: `linear-gradient(135deg, ${HERA_COLORS.verde}, ${HERA_COLORS.ciano}, ${HERA_COLORS.magenta})` }}
-                  >
-                    🏆 SCOPRI I PREMI E PARTECIPA AL CONCORSO INSTANT WIN!
-                  </button>
-                )}
+              {/* Postcard QR */}
+              {postcardUrl && (
+                <div className="w-full flex flex-col items-center gap-4 py-4">
+                  <p className="text-2xl font-bold text-foreground tracking-wide text-center">
+                    Scarica la tua postcard
+                  </p>
+                  {postcardQrUrl ? (
+                    <>
+                      <img src={postcardQrUrl} alt="QR Code postcard" className="w-56 h-56 rounded-2xl shadow-lg" />
+                      <p className="text-lg text-muted-foreground text-center">
+                        Inquadra il QR con il tuo smartphone
+                      </p>
+                    </>
+                  ) : (
+                    <div className="w-56 h-56 rounded-2xl bg-muted animate-pulse" />
+                  )}
 
-                {postcardUrl && (
-                  <button
-                    onClick={() => downloadPostcard(postcardUrl)}
-                    className="w-full text-xl font-semibold px-12 py-5 rounded-full border-2 border-primary text-primary hover:bg-primary/5 transition-all"
-                  >
-                    SCARICA LA TUA POSTCARD
-                  </button>
-                )}
+                  {/* Invia per email — visibile ma non funzionante */}
+                  <div className="relative group">
+                    <button
+                      disabled
+                      className="flex items-center gap-3 text-xl font-semibold px-10 py-4 rounded-full border-2 border-muted-foreground/30 text-muted-foreground/50 cursor-not-allowed"
+                    >
+                      ✉️ Invia per email
+                    </button>
+                    {/* Tooltip */}
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 hidden group-hover:block bg-foreground text-background text-sm rounded-xl px-4 py-3 w-64 text-center shadow-xl z-10">
+                      Funzione in arrivo — richiede configurazione del servizio email
+                    </div>
+                  </div>
 
-                {!result.code && (
-                  <button
-                    onClick={handleRestart}
-                    className="text-xl text-muted-foreground underline mt-2"
-                  >
-                    RICOMINCIA
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* PRIZE */}
-        {screen === "prize" && result && (
-          <div className="text-center space-y-12">
-            {result.prize ? (
-              <>
-                <h2 className="text-6xl font-bold text-foreground">HAI VINTO!</h2>
-                <div className="space-y-4">
-                  <p className="text-3xl text-foreground/80">{result.prize.name}</p>
-                  {result.prize.image_url && (
-                    <img src={result.prize.image_url} alt={result.prize.name} className="w-64 h-64 object-contain mx-auto" />
+                  {/* Download diretto — solo in sviluppo */}
+                  {process.env.NODE_ENV === "development" && (
+                    <button
+                      onClick={() => downloadPostcard(postcardUrl)}
+                      className="text-sm text-muted-foreground/40 underline underline-offset-2 hover:text-muted-foreground/60"
+                    >
+                      [dev] download diretto
+                    </button>
                   )}
                 </div>
-                <div className="space-y-2">
-                  <p className="text-xl text-muted-foreground">Il tuo codice premio:</p>
-                  <p className="text-6xl font-mono font-bold text-primary tracking-widest">{result.code}</p>
-                  <p className="text-lg text-muted-foreground">Mostra questo codice allo stand per ritirare il tuo premio</p>
-                </div>
-              </>
-            ) : (
-              <>
-                <h2 className="text-5xl font-bold text-foreground">Grazie per aver partecipato!</h2>
-                <p className="text-2xl text-muted-foreground">Passa allo stand per ritirare il tuo gadget</p>
-              </>
-            )}
-            <button onClick={handleRestart} className="text-xl text-muted-foreground underline">NUOVA PARTITA</button>
+              )}
+
+              {!result.code && (
+                <button
+                  onClick={handleRestart}
+                  className="text-xl font-semibold px-10 py-4 text-muted-foreground underline mt-2"
+                >
+                  Ricomincia
+                </button>
+              )}
+            </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
+
+      {/* ── PRIZE ── */}
+      {screen === "prize" && result && (
+        <div className="flex-1 flex flex-col items-center justify-center px-16 pb-16 gap-14 text-center">
+          {/* Countdown */}
+          <div className="flex flex-col items-center gap-2">
+            <div
+              className="w-20 h-20 rounded-full flex items-center justify-center text-3xl font-black text-white shadow-lg"
+              style={{ background: `linear-gradient(135deg, ${HERA_COLORS.verde}, ${HERA_COLORS.ciano}, ${HERA_COLORS.magenta})` }}
+            >
+              {prizeCountdown}
+            </div>
+            <p className="text-muted-foreground text-base">secondi al reset</p>
+          </div>
+
+          <div className="space-y-8">
+            <h2
+              className="text-8xl font-black tracking-tight bg-clip-text text-transparent"
+              style={{ backgroundImage: `linear-gradient(135deg, ${HERA_COLORS.verde}, ${HERA_COLORS.ciano}, ${HERA_COLORS.magenta})` }}
+            >
+              HAI VINTO!
+            </h2>
+
+            <div className="space-y-5">
+              <p className="text-3xl text-foreground font-bold">
+                Complimenti! Hai ottenuto un premio.
+              </p>
+              <div
+                className="rounded-3xl px-12 py-8 inline-block"
+                style={{ background: `linear-gradient(135deg, ${HERA_COLORS.verde}22, ${HERA_COLORS.ciano}22)` }}
+              >
+                <p className="text-2xl text-foreground/80 leading-relaxed">
+                  📩 Riceverai una mail all'indirizzo che hai indicato<br />
+                  con le <strong>istruzioni per il ritiro del premio</strong>.
+                </p>
+              </div>
+            </div>
+
+            {result.prize?.name && (
+              <p className="text-2xl text-muted-foreground">
+                Premio: <strong>{result.prize.name}</strong>
+              </p>
+            )}
+          </div>
+
+          <button
+            onClick={handleRestart}
+            className="text-2xl font-black px-16 py-6 rounded-full text-white shadow-xl hover:scale-105 transition-transform"
+            style={{ background: `linear-gradient(135deg, ${HERA_COLORS.verde}, ${HERA_COLORS.ciano}, ${HERA_COLORS.magenta})` }}
+          >
+            🔄 RICOMINCIA
+          </button>
+        </div>
+      )}
     </div>
   );
 }

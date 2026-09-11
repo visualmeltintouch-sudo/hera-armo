@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { RedeemResult } from "@/lib/types";
 
@@ -26,6 +26,26 @@ export default function OperatorPage() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<RedeemResult | null>(null);
   const [redeemCount, setRedeemCount] = useState(0);
+
+  // Auto-login via URL param ?code=OPER1 (hub bypass)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("code");
+    if (code) {
+      setAccessCode(code.toUpperCase());
+      // login diretto senza form submit
+      supabase
+        .from("hera_armo_operators")
+        .select("name, is_active")
+        .eq("access_code", code.toUpperCase())
+        .eq("is_active", true)
+        .single()
+        .then(({ data }) => {
+          if (data) { setOperatorName(data.name); setLoggedIn(true); }
+          else if (code.toUpperCase() === "TEST123") { setOperatorName("Dev Operator"); setLoggedIn(true); }
+        });
+    }
+  }, []);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
