@@ -68,54 +68,6 @@
         "value": "2.1rem",
         "createdAt": "2026-09-14T00:00:00.000Z",
         "reason": "Matches the documented Title step (600, 2.1rem, 1.3) in DESIGN.md Hierarchy — used for selfie screen headings"
-      },
-      {
-        "rule": "design-system-font-size",
-        "value": "1.6538rem",
-        "createdAt": "2026-09-14T01:00:00.000Z",
-        "reason": "User confirmed: totem text sizes +50% everywhere except the form screen (see DESIGN.md Hierarchy note)"
-      },
-      {
-        "rule": "design-system-font-size",
-        "value": "2.625rem",
-        "createdAt": "2026-09-14T01:00:00.000Z",
-        "reason": "User confirmed: totem text sizes +50% everywhere except the form screen (see DESIGN.md Hierarchy note)"
-      },
-      {
-        "rule": "design-system-font-size",
-        "value": "2.7562rem",
-        "createdAt": "2026-09-14T01:00:00.000Z",
-        "reason": "User confirmed: totem text sizes +50% everywhere except the form screen (see DESIGN.md Hierarchy note)"
-      },
-      {
-        "rule": "design-system-font-size",
-        "value": "3.15rem",
-        "createdAt": "2026-09-14T01:00:00.000Z",
-        "reason": "User confirmed: totem text sizes +50% everywhere except the form screen (see DESIGN.md Hierarchy note)"
-      },
-      {
-        "rule": "design-system-font-size",
-        "value": "3.3075rem",
-        "createdAt": "2026-09-14T01:00:00.000Z",
-        "reason": "User confirmed: totem text sizes +50% everywhere except the form screen (see DESIGN.md Hierarchy note)"
-      },
-      {
-        "rule": "design-system-font-size",
-        "value": "4.41rem",
-        "createdAt": "2026-09-14T01:00:00.000Z",
-        "reason": "User confirmed: totem text sizes +50% everywhere except the form screen (see DESIGN.md Hierarchy note)"
-      },
-      {
-        "rule": "design-system-font-size",
-        "value": "7.875rem",
-        "createdAt": "2026-09-14T01:00:00.000Z",
-        "reason": "User confirmed: totem text sizes +50% everywhere except the form screen (see DESIGN.md Hierarchy note)"
-      },
-      {
-        "rule": "design-system-font-size",
-        "value": "9.45rem",
-        "createdAt": "2026-09-14T01:00:00.000Z",
-        "reason": "User confirmed: totem text sizes +50% everywhere except the form screen (see DESIGN.md Hierarchy note)"
       }
     ]
   }
