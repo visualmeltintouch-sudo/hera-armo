@@ -144,12 +144,16 @@ Rounded-full pills for every primary button (matches the soft, humanist type). A
 ### Result Gradient (signature component)
 - **Style:** a circular field (`rounded-full`, 256px) filled with a true `linear-gradient(135deg, ...)` built from exactly one stop per hue, positioned at the midpoint of that hue's cumulative weight share (never two stops of the same color — that produces a hard band, which this system forbids). The Canvas-rendered postcard uses the same weighted-stop math so the downloadable image matches what the visitor saw on screen.
 
-### Selfie Viewfinder (signature component, 2026-09-14)
-- **Layout:** a dedicated 200 / 1080 / 640px vertical split on the 1080×1920 canvas — logo-only header, a full-bleed 1080×1080 square viewfinder (camera feed, captured photo, or idle placeholder), and a bottom control panel carrying every message and button for that step.
-- **Style reference:** Apple Camera / ID-photo-capture chrome — a clean, undecorated square (no border, no rounding) with iOS-style overlay chrome only where the camera itself needs it (the centering guide, the translucent attempt-count capsule), never on the control panel below.
-- **Shutter:** a true optical shutter — a thin `border` ring (`hsl(var(--foreground)/0.15)`) around a smaller solid magenta disc — flanked by a muted circular close/cancel icon button on one side and a matching empty spacer on the other, for symmetry.
+### Selfie Viewfinder (signature component, revised 2026-09-14)
+- **Layout:** a dedicated 200 / 1080 / 640px vertical split on the 1080×1920 canvas — logo-only header, a full-bleed 1080×1080 square viewfinder (camera feed, captured photo, or an error placeholder), and a bottom control panel carrying every message and button for that step.
+- **Flow:** the camera opens automatically the instant the visitor lands here (right after the form) — no landing/idle step to tap through first. This is also where the browser's camera-permission prompt fires. If the camera fails, the square shows a neutral placeholder and a transient toast ("Fotocamera non disponibile…") appears over the bottom of the square; the panel below falls back to upload/skip, no separate screen.
+- **Style reference:** Apple Camera / ID-photo-capture chrome — a clean, undecorated square (no border, no rounding) with iOS-style overlay chrome only where the camera itself needs it (the translucent attempt-count capsule, the toast), never on the control panel below.
+- **No centering guide.** The live feed is shown clean, with nothing overlaid on top of it except the attempt badge and (during the countdown) the number itself — the visitor frames themselves without a forced guide.
+- **Shutter countdown:** 5→1 then "CHEESE!", rendered directly over the live feed with a fully transparent backdrop (the feed stays visible underneath) — the digits are drawn in the HERA verde→ciano→magenta gradient, a deliberate exception to the "no gradient text" default because this *is* the brand's reveal mechanism, matching the "HAI VINTO!" treatment on the prize screen.
+- **Shutter:** a true optical shutter — a thin `border` ring (`hsl(var(--foreground)/0.15)`) around a smaller solid magenta disc — flanked by a muted circular close/skip icon button on one side and a matching empty spacer on the other, for symmetry.
+- **Attempts:** the confirm step ("Ti piace?") makes the *last* remaining attempt explicit — its copy and the Riprova button switch to destructive red only when exactly one retry is left, not on every retry.
+- **Crop:** `adaptiveCrop`'s padding multipliers (1.6× normal / 1.0× small face / 2.2× large face) intentionally leave more headroom than a tight close-up — tune here, not in the display layer, since the same crop is reused in the result-screen photo ring.
 - **Icons:** hand-drawn single-stroke SVGs (`src/components/kiosk/CameraIcons.tsx`) — camera, image, close, check, refresh — never emoji or unicode glyphs.
-- **Face guide:** a translucent white ring centered in the live feed with the surrounding area dimmed via a `box-shadow: 0 0 0 9999px` spread — appears only during capture, gone in idle and preview.
 
 ### Navigation (admin)
 - Dark-mode sidebar (`.dark` token set) with the HERA logo top-left, primary-colored active state, muted inactive links.

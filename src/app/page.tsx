@@ -165,6 +165,8 @@ export default function TotemPage() {
   const [selfieAttempts, setSelfieAttempts] = useState(0);
   // null = nessun countdown in corso; 5→0 poi scatta in automatico ("cheese")
   const [shutterCountdown, setShutterCountdown] = useState<number | null>(null);
+  // Toast transitorio per errori camera — non blocca lo schermo con uno step dedicato
+  const [selfieToast, setSelfieToast] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const captureCanvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -185,6 +187,13 @@ export default function TotemPage() {
     const t = setTimeout(() => setShutterCountdown((c) => (c ?? 1) - 1), 1000);
     return () => clearTimeout(t);
   }, [shutterCountdown]);
+
+  // Toast camera — si chiude da solo dopo qualche secondo
+  useEffect(() => {
+    if (!selfieToast) return;
+    const t = setTimeout(() => setSelfieToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [selfieToast]);
 
   // Prize countdown timer
   useEffect(() => {
@@ -352,9 +361,10 @@ export default function TotemPage() {
     setFormLoading(false);
     setSelfieDataUrl(null);
     setSelfieStorageUrl(null);
-    setSelfieStep("idle");
     setSelfieError("");
     setScreen("selfie");
+    // Fotocamera avviata subito — è qui che il browser chiede il permesso
+    startCamera();
   }
 
   // ── Face detection helpers ─────────────────────────────────────────────────
@@ -414,13 +424,13 @@ export default function TotemPage() {
     const faceArea = face.w * face.h;
 
     // Calcola il padding intorno al viso in base alla sua dimensione relativa
-    // Viso grande (>15%) → più zoom-out (padding 2.0×)
-    // Viso piccolo (<5%) → più zoom-in (padding 0.7×)
-    // Normale → padding 1.2×
+    // Viso grande (>15%) → più zoom-out (padding 2.2×)
+    // Viso piccolo (<5%) → più zoom-in (padding 1.0×)
+    // Normale → padding 1.6× (meno primo piano rispetto alla versione precedente)
     let padding: number;
-    if (faceArea > 0.15) padding = 2.0;
-    else if (faceArea < 0.05) padding = 0.7;
-    else padding = 1.2;
+    if (faceArea > 0.15) padding = 2.2;
+    else if (faceArea < 0.05) padding = 1.0;
+    else padding = 1.6;
 
     // Crop square centrato sul viso con il padding calcolato
     const faceSizePx = Math.max(face.w * W, face.h * H);
@@ -447,6 +457,7 @@ export default function TotemPage() {
 
   async function startCamera() {
     setSelfieError("");
+    setSelfieToast(null);
     setSelfieStep("capturing");
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -458,7 +469,8 @@ export default function TotemPage() {
         videoRef.current.play();
       }
     } catch {
-      setSelfieError("Fotocamera non disponibile. Usa il pulsante di upload.");
+      // Nessuno step dedicato: un toast + fallback upload/salta restano nello stesso schermo
+      setSelfieToast("Fotocamera non disponibile — usa il pulsante di upload.");
       setSelfieStep("idle");
     }
   }
@@ -1078,24 +1090,39 @@ export default function TotemPage() {
             {selfieStep === "capturing" && (
               <>
                 <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover scale-x-[-1]" />
-                {/* Guida di centratura volto */}
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <div
-                    className="rounded-full border-4 border-white/70"
-                    style={{ width: "46%", aspectRatio: "1 / 1", boxShadow: "0 0 0 9999px rgba(0,0,0,0.25)" }}
-                  />
-                </div>
                 {/* Badge tentativo — overlay traslucido stile iOS */}
                 <div className="absolute top-6 left-1/2 -translate-x-1/2 px-6 py-2.5 rounded-full backdrop-blur-md bg-black/40">
                   <span className="text-white text-[1.05rem] font-semibold tracking-wide">
                     Scatto {selfieAttempts + 1} di {MAX_SELFIE_ATTEMPTS}
                   </span>
                 </div>
+                {/* Countdown scatto — overlay trasparente, numeri in gradiente HERA */}
+                {shutterCountdown !== null && (
+                  <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
+                    <span
+                      className="font-black bg-clip-text text-transparent"
+                      style={{
+                        fontSize: shutterCountdown === 0 ? "3.5rem" : "9.1rem",
+                        backgroundImage: `linear-gradient(135deg, ${HERA_COLORS.verde}, ${HERA_COLORS.ciano}, ${HERA_COLORS.magenta})`,
+                        filter: "drop-shadow(0 2px 12px rgba(0,0,0,0.35))",
+                      }}
+                    >
+                      {shutterCountdown === 0 ? "CHEESE!" : shutterCountdown}
+                    </span>
+                  </div>
+                )}
               </>
             )}
 
             {selfieStep === "preview" && selfieDataUrl && (
               <img src={selfieDataUrl} alt="Anteprima selfie" className="w-full h-full object-cover" />
+            )}
+
+            {/* Toast camera — errore non bloccante, sparisce da solo */}
+            {selfieToast && (
+              <div className="absolute bottom-6 left-1/2 -translate-x-1/2 px-6 py-3 rounded-full backdrop-blur-md bg-destructive/90 shadow-lg max-w-[90%]">
+                <span className="text-white text-[1.05rem] font-semibold text-center block">{selfieToast}</span>
+              </div>
             )}
           </div>
 
@@ -1104,11 +1131,10 @@ export default function TotemPage() {
             {selfieStep === "idle" && (
               <>
                 <div className="text-center space-y-2">
-                  <h2 className="text-[2.1rem] font-black text-foreground">Scatta la tua foto</h2>
+                  <h2 className="text-[2.1rem] font-black text-foreground">Fotocamera non disponibile</h2>
                   <p className="text-[1.4rem] text-muted-foreground leading-relaxed max-w-[720px]">
-                    {userName ? `Ciao ${userName.split(" ")[0]}! ` : ""}Il tuo ritratto entrerà nel gradiente personale.
+                    Puoi comunque partecipare caricando una foto dal dispositivo, oppure saltare questo passaggio.
                   </p>
-                  <p className="text-[1.05rem] text-muted-foreground/70">Hai fino a {MAX_SELFIE_ATTEMPTS} scatti a disposizione</p>
                   {selfieError && <p className="text-[1.05rem] text-destructive font-medium">{selfieError}</p>}
                 </div>
 
@@ -1118,7 +1144,7 @@ export default function TotemPage() {
                     className="flex items-center gap-3 text-[1.4rem] font-bold px-14 py-6 rounded-full text-white shadow-lg active:scale-95 transition-transform"
                     style={{ background: BTN.primary }}
                   >
-                    <CameraIcon className="w-7 h-7" /> Scatta foto
+                    <CameraIcon className="w-7 h-7" /> Riprova con la fotocamera
                   </button>
                   <button
                     onClick={() => fileInputRef.current?.click()}
@@ -1136,12 +1162,12 @@ export default function TotemPage() {
 
             {selfieStep === "capturing" && (
               <>
-                <p className="text-[1.4rem] text-muted-foreground text-center">Centra il viso nel cerchio e premi scatta</p>
+                <p className="text-[1.4rem] text-muted-foreground text-center">Quando sei pronto/a, premi lo scatto</p>
 
                 <div className="flex items-center justify-center gap-16 w-full">
                   <button
-                    onClick={() => { stopCamera(); setSelfieStep("idle"); }}
-                    aria-label="Annulla"
+                    onClick={skipSelfie}
+                    aria-label="Salta"
                     className="w-16 h-16 rounded-full flex items-center justify-center bg-muted text-foreground/60 active:scale-90 transition-transform"
                   >
                     <CloseIcon className="w-7 h-7" />
@@ -1166,11 +1192,15 @@ export default function TotemPage() {
               <>
                 <div className="text-center space-y-2">
                   <h2 className="text-[2.1rem] font-black text-foreground">Ti piace?</h2>
-                  <p className="text-[1.4rem] text-muted-foreground">
-                    {selfieAttempts < MAX_SELFIE_ATTEMPTS
-                      ? "Se sei soddisfatto/a, procedi al quiz"
-                      : "Nessun tentativo rimasto — si procede con questo scatto"}
-                  </p>
+                  {selfieAttempts >= MAX_SELFIE_ATTEMPTS ? (
+                    <p className="text-[1.4rem] text-muted-foreground">Nessun tentativo rimasto — si procede con questo scatto</p>
+                  ) : MAX_SELFIE_ATTEMPTS - selfieAttempts === 1 ? (
+                    <p className="text-[1.4rem] font-semibold" style={{ color: BTN.destructive }}>
+                      Ultimo tentativo disponibile se rifai la foto
+                    </p>
+                  ) : (
+                    <p className="text-[1.4rem] text-muted-foreground">Se sei soddisfatto/a, procedi al quiz</p>
+                  )}
                 </div>
 
                 <div className="flex items-center justify-center gap-5 w-full flex-wrap">
@@ -1178,7 +1208,10 @@ export default function TotemPage() {
                     <button
                       onClick={retrySelfie}
                       className="flex items-center gap-3 text-[1.4rem] font-semibold px-8 py-5 rounded-full border-2 transition-colors"
-                      style={{ borderColor: BTN.neutral, color: BTN.neutral }}
+                      style={{
+                        borderColor: MAX_SELFIE_ATTEMPTS - selfieAttempts === 1 ? BTN.destructive : BTN.neutral,
+                        color: MAX_SELFIE_ATTEMPTS - selfieAttempts === 1 ? BTN.destructive : BTN.neutral,
+                      }}
                     >
                       <RefreshIcon className="w-6 h-6" /> Riprova ({MAX_SELFIE_ATTEMPTS - selfieAttempts})
                     </button>
@@ -1194,15 +1227,6 @@ export default function TotemPage() {
               </>
             )}
           </div>
-
-          {/* Countdown scatto — overlay fullscreen, 5-4-3-2-1-cheese */}
-          {shutterCountdown !== null && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
-              <span className="text-white font-black" style={{ fontSize: shutterCountdown === 0 ? "3.5rem" : "9.1rem" }}>
-                {shutterCountdown === 0 ? "CHEESE!" : shutterCountdown}
-              </span>
-            </div>
-          )}
         </div>
       )}
 
