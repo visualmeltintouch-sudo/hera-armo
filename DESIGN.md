@@ -63,7 +63,8 @@ This is a deliberate rejection of the earlier build, which painted a faint tri-c
 - The three HERA hues also appear in the intro hero background and the final result gradient — those remain non-interactive, decorative reveals, distinct from the semantic button colors above.
 - Answers are icon + label cards, not lettered "A/B" choices — every option reads as a concrete thing, not an abstract slot
 - Circular Std as the display and body voice everywhere; Geist is the silent fallback
-- **Type scale ×1.4 (2026-09-11, revised same day):** the totem runs on a 55" screen viewed from a few steps away, so text was first doubled from the original scale, then pulled back 30% after that read as too large — net effect vs. the original scale below is ×1.4.
+- **Type scale ×2.1 outside the form, ×1.4 on the form (2026-09-11 → 2026-09-14):** the totem runs on a 55" screen viewed from a few steps away. Text was doubled, pulled back 30% (net ×1.4), then bumped +50% again everywhere except the registration form — the form's fields, labels and buttons stay at ×1.4 so the keyboard and inputs don't have to be re-tuned every pass. Net effect vs. the original scale below is **×2.1 on every other screen**, **×1.4 on the form**. Decorative icon/emoji glyphs sitting inside fixed-size containers (score circles, answer-card icons) were kept at ×1.4 rather than ×2.1 — see the per-component notes.
+- **Margins ≥10% of the canvas (2026-09-14):** every screen except the ones with a deliberate edge-to-edge element (the selfie viewfinder square, the shutter countdown overlay, the kiosk keyboard) keeps at least 108px (10% of 1080) of horizontal margin — `TopZone`/`TouchZone` and every screen-level container use `px-[108px]`. Vertical margins were already ≥192px (10% of 1920) via `TOP_SAFE`/`BOTTOM_SAFE`.
 
 ## Colors
 
@@ -99,7 +100,7 @@ Restrained strategy: neutrals carry the whole surface, one committed accent (HER
 
 **Character:** Rounded, geometric, friendly without being juvenile — a single humanist grotesque voice carries both the punchy Gen-Z intro copy and the plainer institutional classic-tone copy, so age-group content differs in words, never in typeface.
 
-### Hierarchy (×1.4 scale, 2026-09-11 — 55" kiosk viewing distance)
+### Hierarchy (×1.4 scale — form screen only; every other screen is ×1.4 × 1.5 = ×2.1, see Overview)
 - **Display** (700, clamp(3.5rem, 8.4vw, 6.3rem), 1.05): intro headline "LA TUA ARMOCROMIA HERAVIGLIOSA", result profile name.
 - **Headline** (700, 4.2rem, 1.1): birth-year prompt, "HAI VINTO!", question text.
 - **Title** (600, 2.1rem, 1.3): section labels, progress counter.
