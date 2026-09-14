@@ -6,6 +6,7 @@ import { scoresToGradient } from "@/lib/gradient";
 import { generatePostcard, downloadPostcard } from "@/lib/postcard";
 import { HERA_COLORS } from "@/lib/constants";
 import { KioskKeyboard } from "@/components/kiosk/KioskKeyboard";
+import { CameraIcon, ImageIcon, CloseIcon, CheckIcon, RefreshIcon } from "@/components/kiosk/CameraIcons";
 import type {
   ArmoEvent,
   ArmoSettings,
@@ -1055,134 +1056,150 @@ export default function TotemPage() {
         </div>
       )}
 
-      {/* ── SELFIE ── */}
+      {/* ── SELFIE — viewfinder quadrato in stile fotocamera iOS ── */}
       {screen === "selfie" && (
-        <div className="h-[1920px] w-full flex flex-col">
+        <div className="h-[1920px] w-full flex flex-col bg-background">
           <canvas ref={captureCanvasRef} className="hidden" />
           <input ref={fileInputRef} type="file" accept="image/jpeg,image/jpg,image/png,image/webp" className="hidden" onChange={handleFileUpload} />
 
-          <TopZone>
-            <HeraLogo className="h-14 w-auto" />
-            {selfieStep === "idle" && (
-              <>
-                <h2 className="text-[2.94rem] font-black text-foreground">Scatta la tua foto</h2>
-                <p className="text-[1.47rem] text-muted-foreground leading-relaxed max-w-[700px]">
-                  {userName ? `Ciao ${userName.split(" ")[0]}! ` : ""}Il tuo ritratto entrerà nel gradiente personale.
-                </p>
-                <p className="text-[1.1025rem] text-muted-foreground/70">Hai fino a {MAX_SELFIE_ATTEMPTS} scatti a disposizione</p>
-                {selfieError && <p className="text-[1.1025rem] text-destructive font-medium">{selfieError}</p>}
-              </>
-            )}
-            {selfieStep === "capturing" && (
-              <>
-                <h2 className="text-[2.94rem] font-black text-foreground">Mettiti in posa!</h2>
-                <p className="text-[1.75rem] text-muted-foreground">Centra il viso nel cerchio e premi scatta</p>
-                <p className="text-[1.1025rem] text-muted-foreground/70">
-                  Scatto {selfieAttempts + 1} di {MAX_SELFIE_ATTEMPTS}
-                </p>
-              </>
-            )}
-            {selfieStep === "preview" && (
-              <>
-                <h2 className="text-[2.94rem] font-black text-foreground">Ti piace?</h2>
-                <p className="text-[1.75rem] text-muted-foreground">
-                  {selfieAttempts < MAX_SELFIE_ATTEMPTS
-                    ? "Se sei soddisfatto/a, procedi al quiz"
-                    : "Nessun tentativo rimasto — si procede con questo scatto"}
-                </p>
-              </>
-            )}
-          </TopZone>
+          {/* Header — solo logo, 200px, nulla di cliccabile */}
+          <div className="shrink-0 w-full flex items-center justify-center" style={{ height: 200 }}>
+            <HeraLogo className="h-12 w-auto" />
+          </div>
 
-          <TouchZone className="gap-10">
+          {/* Viewfinder — 1080×1080, pulito, full-bleed */}
+          <div className="relative shrink-0 w-full overflow-hidden" style={{ height: 1080, background: `${BTN.neutral}0f` }}>
             {selfieStep === "idle" && (
-              <div className="flex flex-col items-center gap-5 w-full">
-                <button
-                  onClick={startCamera}
-                  className="flex items-center gap-4 text-[1.47rem] font-bold px-14 py-6 rounded-full text-white shadow-lg active:scale-95 transition-transform"
-                  style={{ background: BTN.primary }}
-                >
-                  SCATTA FOTO
-                </button>
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex items-center gap-4 text-[1.75rem] font-semibold px-12 py-5 rounded-full border-2 transition-colors"
-                  style={{ borderColor: BTN.neutral, color: BTN.neutral }}
-                >
-                  🖼️ CARICA UNA FOTO
-                </button>
-                <button onClick={skipSelfie} className="text-[1.75rem] py-4 px-8 text-muted-foreground underline mt-2">
-                  Salta questo passaggio
-                </button>
+              <div className="w-full h-full flex items-center justify-center">
+                <CameraIcon className="w-28 h-28" style={{ color: BTN.neutral }} />
               </div>
             )}
 
             {selfieStep === "capturing" && (
               <>
-                <div className="relative w-full max-w-[760px] mx-auto rounded-3xl overflow-hidden border-2 border-border" style={{ aspectRatio: "4 / 3" }}>
-                  <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover scale-x-[-1]" />
-                  {/* Guida di centratura volto — leggera, non invasiva */}
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <div className="rounded-full border-4 border-white/60" style={{ width: "42%", aspectRatio: "1 / 1", boxShadow: "0 0 0 9999px rgba(0,0,0,0.15)" }} />
-                  </div>
+                <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover scale-x-[-1]" />
+                {/* Guida di centratura volto */}
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <div
+                    className="rounded-full border-4 border-white/70"
+                    style={{ width: "46%", aspectRatio: "1 / 1", boxShadow: "0 0 0 9999px rgba(0,0,0,0.25)" }}
+                  />
                 </div>
-                <div className="flex flex-col items-center gap-4">
+                {/* Badge tentativo — overlay traslucido stile iOS */}
+                <div className="absolute top-6 left-1/2 -translate-x-1/2 px-6 py-2.5 rounded-full backdrop-blur-md bg-black/40">
+                  <span className="text-white text-[1.05rem] font-semibold tracking-wide">
+                    Scatto {selfieAttempts + 1} di {MAX_SELFIE_ATTEMPTS}
+                  </span>
+                </div>
+              </>
+            )}
+
+            {selfieStep === "preview" && selfieDataUrl && (
+              <img src={selfieDataUrl} alt="Anteprima selfie" className="w-full h-full object-cover" />
+            )}
+          </div>
+
+          {/* Pannello inferiore — messaggi + controlli, tutto lo spazio restante */}
+          <div className="flex-1 flex flex-col items-center justify-center px-16 pb-16 gap-8">
+            {selfieStep === "idle" && (
+              <>
+                <div className="text-center space-y-2">
+                  <h2 className="text-[2.1rem] font-black text-foreground">Scatta la tua foto</h2>
+                  <p className="text-[1.4rem] text-muted-foreground leading-relaxed max-w-[720px]">
+                    {userName ? `Ciao ${userName.split(" ")[0]}! ` : ""}Il tuo ritratto entrerà nel gradiente personale.
+                  </p>
+                  <p className="text-[1.05rem] text-muted-foreground/70">Hai fino a {MAX_SELFIE_ATTEMPTS} scatti a disposizione</p>
+                  {selfieError && <p className="text-[1.05rem] text-destructive font-medium">{selfieError}</p>}
+                </div>
+
+                <div className="flex flex-col items-center gap-4 w-full">
+                  <button
+                    onClick={startCamera}
+                    className="flex items-center gap-3 text-[1.4rem] font-bold px-14 py-6 rounded-full text-white shadow-lg active:scale-95 transition-transform"
+                    style={{ background: BTN.primary }}
+                  >
+                    <CameraIcon className="w-7 h-7" /> Scatta foto
+                  </button>
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex items-center gap-3 text-[1.4rem] font-semibold px-10 py-4 rounded-full border-2 transition-colors"
+                    style={{ borderColor: BTN.neutral, color: BTN.neutral }}
+                  >
+                    <ImageIcon className="w-6 h-6" /> Carica una foto
+                  </button>
+                  <button onClick={skipSelfie} className="text-[1.4rem] py-2 text-muted-foreground underline">
+                    Salta questo passaggio
+                  </button>
+                </div>
+              </>
+            )}
+
+            {selfieStep === "capturing" && (
+              <>
+                <p className="text-[1.4rem] text-muted-foreground text-center">Centra il viso nel cerchio e premi scatta</p>
+
+                <div className="flex items-center justify-center gap-16 w-full">
+                  <button
+                    onClick={() => { stopCamera(); setSelfieStep("idle"); }}
+                    aria-label="Annulla"
+                    className="w-16 h-16 rounded-full flex items-center justify-center bg-muted text-foreground/60 active:scale-90 transition-transform"
+                  >
+                    <CloseIcon className="w-7 h-7" />
+                  </button>
+
                   <button
                     onClick={startShutterCountdown}
                     disabled={shutterCountdown !== null}
-                    className="w-24 h-24 rounded-full text-white text-[2.94rem] flex items-center justify-center shadow-xl active:scale-95 transition-transform disabled:opacity-50"
-                    style={{ background: BTN.primary }}
+                    aria-label="Scatta"
+                    className="rounded-full flex items-center justify-center active:scale-95 transition-transform disabled:opacity-50"
+                    style={{ width: 104, height: 104, border: "5px solid hsl(var(--foreground) / 0.15)" }}
                   >
-                    📸
+                    <span className="rounded-full" style={{ width: 84, height: 84, background: BTN.primary }} />
                   </button>
-                  <button onClick={() => { stopCamera(); setSelfieStep("idle"); }} className="text-[1.75rem] py-4 px-8 text-muted-foreground underline">
-                    Annulla
-                  </button>
+
+                  <div className="w-16 h-16" aria-hidden="true" />
                 </div>
               </>
             )}
 
             {selfieStep === "preview" && selfieDataUrl && (
               <>
-                <div className="relative mx-auto flex items-center justify-center" style={{ width: 340, height: 340 }}>
-                  <div
-                    className="rounded-full p-5 shadow-2xl"
-                    style={{ background: `linear-gradient(135deg, ${HERA_COLORS.verde}, ${HERA_COLORS.ciano}, ${HERA_COLORS.magenta})`, width: 340, height: 340 }}
-                  >
-                    <div className="rounded-full w-full h-full overflow-hidden" style={{ background: "#e8e0ec" }}>
-                      <img src={selfieDataUrl} alt="Selfie" className="w-full h-full object-cover" />
-                    </div>
-                  </div>
+                <div className="text-center space-y-2">
+                  <h2 className="text-[2.1rem] font-black text-foreground">Ti piace?</h2>
+                  <p className="text-[1.4rem] text-muted-foreground">
+                    {selfieAttempts < MAX_SELFIE_ATTEMPTS
+                      ? "Se sei soddisfatto/a, procedi al quiz"
+                      : "Nessun tentativo rimasto — si procede con questo scatto"}
+                  </p>
                 </div>
-                <div className="flex flex-col items-center gap-4">
-                  <button
-                    onClick={confirmSelfie}
-                    className="text-[1.47rem] font-bold px-14 py-6 rounded-full text-white shadow-lg active:scale-95 transition-transform"
-                    style={{ background: BTN.success }}
-                  >
-                    ✓ OTTIMA! PROCEDI
-                  </button>
+
+                <div className="flex items-center justify-center gap-5 w-full flex-wrap">
                   {selfieAttempts < MAX_SELFIE_ATTEMPTS && (
                     <button
                       onClick={retrySelfie}
-                      className="text-[1.75rem] font-semibold px-10 py-4 rounded-full border-2 transition-colors"
+                      className="flex items-center gap-3 text-[1.4rem] font-semibold px-8 py-5 rounded-full border-2 transition-colors"
                       style={{ borderColor: BTN.neutral, color: BTN.neutral }}
                     >
-                      Riprova ({MAX_SELFIE_ATTEMPTS - selfieAttempts} rimasti)
+                      <RefreshIcon className="w-6 h-6" /> Riprova ({MAX_SELFIE_ATTEMPTS - selfieAttempts})
                     </button>
                   )}
+                  <button
+                    onClick={confirmSelfie}
+                    className="flex items-center gap-3 text-[1.4rem] font-bold px-10 py-5 rounded-full text-white shadow-lg active:scale-95 transition-transform"
+                    style={{ background: BTN.success }}
+                  >
+                    <CheckIcon className="w-6 h-6" /> Usa questa foto
+                  </button>
                 </div>
               </>
             )}
-          </TouchZone>
-
-          <BottomSafe />
+          </div>
 
           {/* Countdown scatto — overlay fullscreen, 5-4-3-2-1-cheese */}
           {shutterCountdown !== null && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
               <span className="text-white font-black" style={{ fontSize: shutterCountdown === 0 ? "3.5rem" : "9.1rem" }}>
-                {shutterCountdown === 0 ? "📸 CHEESE!" : shutterCountdown}
+                {shutterCountdown === 0 ? "CHEESE!" : shutterCountdown}
               </span>
             </div>
           )}

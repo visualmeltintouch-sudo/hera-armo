@@ -144,6 +144,13 @@ Rounded-full pills for every primary button (matches the soft, humanist type). A
 ### Result Gradient (signature component)
 - **Style:** a circular field (`rounded-full`, 256px) filled with a true `linear-gradient(135deg, ...)` built from exactly one stop per hue, positioned at the midpoint of that hue's cumulative weight share (never two stops of the same color — that produces a hard band, which this system forbids). The Canvas-rendered postcard uses the same weighted-stop math so the downloadable image matches what the visitor saw on screen.
 
+### Selfie Viewfinder (signature component, 2026-09-14)
+- **Layout:** a dedicated 200 / 1080 / 640px vertical split on the 1080×1920 canvas — logo-only header, a full-bleed 1080×1080 square viewfinder (camera feed, captured photo, or idle placeholder), and a bottom control panel carrying every message and button for that step.
+- **Style reference:** Apple Camera / ID-photo-capture chrome — a clean, undecorated square (no border, no rounding) with iOS-style overlay chrome only where the camera itself needs it (the centering guide, the translucent attempt-count capsule), never on the control panel below.
+- **Shutter:** a true optical shutter — a thin `border` ring (`hsl(var(--foreground)/0.15)`) around a smaller solid magenta disc — flanked by a muted circular close/cancel icon button on one side and a matching empty spacer on the other, for symmetry.
+- **Icons:** hand-drawn single-stroke SVGs (`src/components/kiosk/CameraIcons.tsx`) — camera, image, close, check, refresh — never emoji or unicode glyphs.
+- **Face guide:** a translucent white ring centered in the live feed with the surrounding area dimmed via a `box-shadow: 0 0 0 9999px` spread — appears only during capture, gone in idle and preview.
+
 ### Navigation (admin)
 - Dark-mode sidebar (`.dark` token set) with the HERA logo top-left, primary-colored active state, muted inactive links.
 
