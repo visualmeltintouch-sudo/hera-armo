@@ -1319,7 +1319,7 @@ export default function TotemPage() {
                           {text}
                         </span>
                         <span
-                          className={`ml-4 w-8 h-8 rounded-full border-2 shrink-0 flex items-center justify-center text-[1.2rem] ${
+                          className={`ml-4 w-8 h-8 rounded-full border-2 shrink-0 flex items-center justify-center text-[1.05rem] ${
                             isSelected ? "border-primary bg-primary text-primary-foreground" : "border-border text-transparent"
                           }`}
                         >
