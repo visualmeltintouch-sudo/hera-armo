@@ -1289,8 +1289,10 @@ export default function TotemPage() {
 
               <div className="flex flex-col gap-5">
                 {(["a", "b"] as SelectedOption[]).map((opt) => {
-                  const icon = opt === "a" ? currentQuestion.option_a_icon : currentQuestion.option_b_icon;
                   const text = opt === "a" ? currentQuestion.option_a_text : currentQuestion.option_b_text;
+                  const imageUrl =
+                    (opt === "a" ? currentQuestion.option_a_image : currentQuestion.option_b_image) ||
+                    "/images/quiz/placeholder.svg";
                   const isSelected = selectedAnswers[currentQuestion.id] === opt;
                   return (
                     <button
@@ -1298,19 +1300,32 @@ export default function TotemPage() {
                       onClick={() => handleSelectAnswer(currentQuestion.id, opt)}
                       disabled={autoAdvancing}
                       aria-pressed={isSelected}
-                      className={`flex items-center gap-6 text-left px-8 py-7 rounded-2xl border-2 transition-all duration-200 ${
+                      className={`relative flex flex-col text-left p-3 rounded-2xl border-2 transition-all duration-200 ${
                         isSelected
                           ? "border-primary bg-primary/5 shadow-md scale-[1.01]"
                           : "border-border bg-card"
                       } ${autoAdvancing ? "pointer-events-none" : ""}`}
                     >
-                      <span className="text-[2.94rem] shrink-0">{icon}</span>
-                      <span className={`text-[1.47rem] font-semibold leading-snug ${isSelected ? "text-primary" : "text-foreground"}`}>
-                        {text}
-                      </span>
-                      {isSelected && (
-                        <span className="ml-auto text-primary text-[1.8375rem] shrink-0">✓</span>
-                      )}
+                      <div className="w-full h-[220px] rounded-xl overflow-hidden bg-muted shrink-0">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={imageUrl}
+                          alt={text}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="flex items-center justify-between px-2 py-4">
+                        <span className={`text-[1.47rem] font-semibold leading-snug ${isSelected ? "text-primary" : "text-foreground"}`}>
+                          {text}
+                        </span>
+                        <span
+                          className={`ml-4 w-8 h-8 rounded-full border-2 shrink-0 flex items-center justify-center text-[1.2rem] ${
+                            isSelected ? "border-primary bg-primary text-primary-foreground" : "border-border text-transparent"
+                          }`}
+                        >
+                          ✓
+                        </span>
+                      </div>
                     </button>
                   );
                 })}
