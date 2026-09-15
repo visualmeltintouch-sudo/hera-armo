@@ -6,7 +6,7 @@ import { scoresToGradient } from "@/lib/gradient";
 import { generatePostcard, downloadPostcard } from "@/lib/postcard";
 import { HERA_COLORS } from "@/lib/constants";
 import { KioskKeyboard } from "@/components/kiosk/KioskKeyboard";
-import { CameraIcon, ImageIcon, CloseIcon, CheckIcon, RefreshIcon } from "@/components/kiosk/CameraIcons";
+import { CameraIcon, ImageIcon, CheckIcon, RefreshIcon } from "@/components/kiosk/CameraIcons";
 import type {
   ArmoEvent,
   ArmoSettings,
@@ -461,7 +461,7 @@ export default function TotemPage() {
     setSelfieStep("capturing");
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "user", width: { ideal: 800 }, height: { ideal: 600 } },
+        video: { facingMode: "user", width: { ideal: 1080 }, height: { ideal: 1920 } },
       });
       streamRef.current = stream;
       if (videoRef.current) {
@@ -486,16 +486,31 @@ export default function TotemPage() {
     setShutterCountdown(5);
   }
 
+  // Ritaglio quadrato centrato di fallback, quando il rilevamento volto non trova nulla
+  function centerSquareCrop(source: HTMLCanvasElement, maxOut = 384): HTMLCanvasElement {
+    const srcSize = Math.min(source.width, source.height);
+    const outSize = Math.min(srcSize, maxOut);
+    const out = document.createElement("canvas");
+    out.width = outSize;
+    out.height = outSize;
+    const ctx = out.getContext("2d")!;
+    const offsetX = (source.width - srcSize) / 2;
+    const offsetY = (source.height - srcSize) / 2;
+    ctx.drawImage(source, offsetX, offsetY, srcSize, srcSize, 0, 0, outSize, outSize);
+    return out;
+  }
+
   async function capturePhoto() {
     if (!videoRef.current) return;
     const video = videoRef.current;
 
-    // Cattura frame completo (non specchiato — la segmentazione funziona meglio)
+    // Cattura il frame intero 9:16, specchiato per un selfie naturale.
+    // Il ritaglio sul volto avviene più avanti (vedi processInBackground) —
+    // qui mostriamo subito la foto intera in anteprima, senza tagli.
     const fullCanvas = document.createElement("canvas");
     fullCanvas.width = video.videoWidth;
     fullCanvas.height = video.videoHeight;
     const fullCtx = fullCanvas.getContext("2d")!;
-    // Mirror orizzontale per selfie naturale
     fullCtx.translate(fullCanvas.width, 0);
     fullCtx.scale(-1, 1);
     fullCtx.drawImage(video, 0, 0);
@@ -503,26 +518,7 @@ export default function TotemPage() {
 
     stopCamera();
     setSelfieAttempts((a) => a + 1);
-
-    // Prova il riconoscimento facciale adattivo
-    const faceBox = await detectFaceBoundingBox(fullCanvas);
-    if (faceBox) {
-      const cropped = adaptiveCrop(fullCanvas, faceBox);
-      showRawPreview(cropped.toDataURL("image/jpeg", 0.85));
-      return;
-    }
-
-    // Fallback: center-crop quadrato
-    const srcSize = Math.min(video.videoWidth, video.videoHeight);
-    const outSize = Math.min(srcSize, 384);
-    const fallback = document.createElement("canvas");
-    fallback.width = outSize;
-    fallback.height = outSize;
-    const ctx = fallback.getContext("2d")!;
-    const offsetX = (fullCanvas.width - srcSize) / 2;
-    const offsetY = (fullCanvas.height - srcSize) / 2;
-    ctx.drawImage(fullCanvas, offsetX, offsetY, srcSize, srcSize, 0, 0, outSize, outSize);
-    showRawPreview(fallback.toDataURL("image/jpeg", 0.85));
+    showRawPreview(fullCanvas.toDataURL("image/jpeg", 0.9));
   }
 
   async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -530,33 +526,16 @@ export default function TotemPage() {
     if (!file) return;
     const img = new Image();
     const objectUrl = URL.createObjectURL(file);
-    img.onload = async () => {
+    img.onload = () => {
       URL.revokeObjectURL(objectUrl);
+      // Foto intera in anteprima, così com'è caricata — il ritaglio sul volto
+      // (se rilevato) avviene più avanti, in processInBackground.
       const srcCanvas = document.createElement("canvas");
       srcCanvas.width = img.naturalWidth;
       srcCanvas.height = img.naturalHeight;
       const ctx = srcCanvas.getContext("2d")!;
       ctx.drawImage(img, 0, 0);
-
-      // Prova face detection
-      const faceBox = await detectFaceBoundingBox(srcCanvas);
-      if (faceBox) {
-        const cropped = adaptiveCrop(srcCanvas, faceBox);
-        showRawPreview(cropped.toDataURL("image/jpeg", 0.85));
-        return;
-      }
-
-      // Fallback: center-crop
-      const srcSize = Math.min(img.naturalWidth, img.naturalHeight);
-      const size = Math.min(srcSize, 384);
-      const out = document.createElement("canvas");
-      out.width = size;
-      out.height = size;
-      const outCtx = out.getContext("2d")!;
-      const offsetX = (img.naturalWidth - srcSize) / 2;
-      const offsetY = (img.naturalHeight - srcSize) / 2;
-      outCtx.drawImage(img, offsetX, offsetY, srcSize, srcSize, 0, 0, size, size);
-      showRawPreview(out.toDataURL("image/jpeg", 0.85));
+      showRawPreview(srcCanvas.toDataURL("image/jpeg", 0.9));
     };
     img.onerror = () => {
       URL.revokeObjectURL(objectUrl);
@@ -576,6 +555,23 @@ export default function TotemPage() {
     setSelfieDataUrl(null);
 
     try {
+      const rawImg = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const el = new Image();
+        el.onload = () => resolve(el);
+        el.onerror = reject;
+        el.src = sourceDataUrl;
+      });
+
+      // Ritaglio sul volto (o fallback centrato) — la foto intera 9:16 vista
+      // in anteprima diventa qui il quadrato stretto usato nel cerchio finale.
+      const rawCanvas = document.createElement("canvas");
+      rawCanvas.width = rawImg.naturalWidth;
+      rawCanvas.height = rawImg.naturalHeight;
+      rawCanvas.getContext("2d")!.drawImage(rawImg, 0, 0);
+
+      const faceBox = await detectFaceBoundingBox(rawCanvas);
+      const croppedCanvas = faceBox ? adaptiveCrop(rawCanvas, faceBox) : centerSquareCrop(rawCanvas);
+
       if (!(window as any).SelfieSegmentation) {
         await new Promise<void>((resolve, reject) => {
           const s = document.createElement("script");
@@ -591,7 +587,7 @@ export default function TotemPage() {
         const el = new Image();
         el.onload = () => resolve(el);
         el.onerror = reject;
-        el.src = sourceDataUrl;
+        el.src = croppedCanvas.toDataURL("image/jpeg", 0.9);
       });
 
       const SelfieSegmentation = (window as any).SelfieSegmentation;
@@ -1068,66 +1064,45 @@ export default function TotemPage() {
         </div>
       )}
 
-      {/* ── SELFIE — viewfinder quadrato in stile fotocamera iOS ── */}
+      {/* ── SELFIE — viewfinder fullscreen 9:16, overlay in stile fotocamera ── */}
       {screen === "selfie" && (
-        <div className="h-[1920px] w-full flex flex-col bg-background">
+        <div className="relative h-[1920px] w-full overflow-hidden bg-background">
           <canvas ref={captureCanvasRef} className="hidden" />
           <input ref={fileInputRef} type="file" accept="image/jpeg,image/jpg,image/png,image/webp" className="hidden" onChange={handleFileUpload} />
 
-          {/* Header — solo logo, 200px, nulla di cliccabile */}
-          <div className="shrink-0 w-full flex items-center justify-center" style={{ height: 200 }}>
-            <HeraLogo className="h-12 w-auto" />
-          </div>
-
-          {/* Viewfinder — 1080×1080, pulito, full-bleed */}
-          <div className="relative shrink-0 w-full overflow-hidden" style={{ height: 1080, background: `${BTN.neutral}0f` }}>
+          {/* Sfondo — video live, foto scattata, o placeholder neutro se la camera non c'è */}
+          <div className="absolute inset-0">
             {selfieStep === "idle" && (
-              <div className="w-full h-full flex items-center justify-center">
+              <div className="w-full h-full flex items-center justify-center" style={{ background: `${BTN.neutral}0f` }}>
                 <CameraIcon className="w-28 h-28" style={{ color: BTN.neutral }} />
               </div>
             )}
-
             {selfieStep === "capturing" && (
-              <>
-                <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover scale-x-[-1]" />
-                {/* Badge tentativo — overlay traslucido stile iOS */}
-                <div className="absolute top-6 left-1/2 -translate-x-1/2 px-6 py-2.5 rounded-full backdrop-blur-md bg-black/40">
-                  <span className="text-white text-[1.05rem] font-semibold tracking-wide">
-                    Scatto {selfieAttempts + 1} di {MAX_SELFIE_ATTEMPTS}
-                  </span>
-                </div>
-                {/* Countdown scatto — overlay trasparente, numeri in gradiente HERA */}
-                {shutterCountdown !== null && (
-                  <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
-                    <span
-                      className="font-black bg-clip-text text-transparent"
-                      style={{
-                        fontSize: shutterCountdown === 0 ? "3.5rem" : "9.1rem",
-                        backgroundImage: `linear-gradient(135deg, ${HERA_COLORS.verde}, ${HERA_COLORS.ciano}, ${HERA_COLORS.magenta})`,
-                        filter: "drop-shadow(0 2px 12px rgba(0,0,0,0.35))",
-                      }}
-                    >
-                      {shutterCountdown === 0 ? "CHEESE!" : shutterCountdown}
-                    </span>
-                  </div>
-                )}
-              </>
+              <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover scale-x-[-1]" />
             )}
-
             {selfieStep === "preview" && selfieDataUrl && (
               <img src={selfieDataUrl} alt="Anteprima selfie" className="w-full h-full object-cover" />
             )}
-
-            {/* Toast camera — errore non bloccante, sparisce da solo */}
-            {selfieToast && (
-              <div className="absolute bottom-6 left-1/2 -translate-x-1/2 px-6 py-3 rounded-full backdrop-blur-md bg-destructive/90 shadow-lg max-w-[90%]">
-                <span className="text-white text-[1.05rem] font-semibold text-center block">{selfieToast}</span>
-              </div>
-            )}
           </div>
 
-          {/* Pannello inferiore — messaggi + controlli, tutto lo spazio restante */}
-          <div className="flex-1 flex flex-col items-center justify-center px-16 pb-16 gap-8">
+          {/* Badge tentativo — overlay in alto, non cliccabile */}
+          {selfieStep === "capturing" && (
+            <div className="absolute top-10 left-1/2 -translate-x-1/2 px-6 py-2.5 rounded-full backdrop-blur-md bg-white/85 shadow-md">
+              <span className="text-foreground text-[1.05rem] font-semibold tracking-wide">
+                Scatto {selfieAttempts + 1} di {MAX_SELFIE_ATTEMPTS}
+              </span>
+            </div>
+          )}
+
+          {/* Toast camera — errore non bloccante, sparisce da solo */}
+          {selfieToast && (
+            <div className="absolute top-10 left-1/2 -translate-x-1/2 px-6 py-3 rounded-full backdrop-blur-md bg-destructive/90 shadow-lg max-w-[90%]">
+              <span className="text-white text-[1.05rem] font-semibold text-center block">{selfieToast}</span>
+            </div>
+          )}
+
+          {/* Pannello inferiore — frosted, overlay su video/foto, tutti i controlli */}
+          <div className="absolute bottom-0 inset-x-0 backdrop-blur-xl bg-background/90 rounded-t-[48px] shadow-[0_-8px_40px_rgba(0,0,0,0.15)] px-10 pt-8 pb-16 flex flex-col items-center gap-6">
             {selfieStep === "idle" && (
               <>
                 <div className="text-center space-y-2">
@@ -1164,34 +1139,29 @@ export default function TotemPage() {
               <>
                 <p className="text-[1.4rem] text-muted-foreground text-center">Quando sei pronto/a, premi lo scatto</p>
 
-                <div className="flex items-center justify-center gap-16 w-full">
-                  <button
-                    onClick={skipSelfie}
-                    aria-label="Salta"
-                    className="w-16 h-16 rounded-full flex items-center justify-center bg-muted text-foreground/60 active:scale-90 transition-transform"
-                  >
-                    <CloseIcon className="w-7 h-7" />
-                  </button>
+                <button
+                  onClick={startShutterCountdown}
+                  disabled={shutterCountdown !== null}
+                  className="w-full max-w-[640px] h-[110px] rounded-full flex items-center justify-between px-4 text-white shadow-xl active:scale-[0.98] transition-transform disabled:opacity-50"
+                  style={{ background: BTN.primary }}
+                >
+                  <span className="w-[86px] h-[86px] rounded-full bg-white flex items-center justify-center shrink-0">
+                    <CameraIcon className="w-9 h-9" style={{ color: BTN.primary }} />
+                  </span>
+                  <span className="flex-1 text-[1.75rem] font-black tracking-widest uppercase">Scatta</span>
+                  <span className="w-[86px] shrink-0" aria-hidden="true" />
+                </button>
 
-                  <button
-                    onClick={startShutterCountdown}
-                    disabled={shutterCountdown !== null}
-                    aria-label="Scatta"
-                    className="rounded-full flex items-center justify-center active:scale-95 transition-transform disabled:opacity-50"
-                    style={{ width: 104, height: 104, border: "5px solid hsl(var(--foreground) / 0.15)" }}
-                  >
-                    <span className="rounded-full" style={{ width: 84, height: 84, background: BTN.primary }} />
-                  </button>
-
-                  <div className="w-16 h-16" aria-hidden="true" />
-                </div>
+                <button onClick={skipSelfie} className="text-[1.4rem] py-1 text-muted-foreground underline">
+                  Salta questo passaggio
+                </button>
               </>
             )}
 
             {selfieStep === "preview" && selfieDataUrl && (
               <>
                 <div className="text-center space-y-2">
-                  <h2 className="text-[2.1rem] font-black text-foreground">Ti piace?</h2>
+                  <h2 className="text-[2.1rem] font-black text-foreground">Ti piace questo scatto?</h2>
                   {selfieAttempts >= MAX_SELFIE_ATTEMPTS ? (
                     <p className="text-[1.4rem] text-muted-foreground">Nessun tentativo rimasto — si procede con questo scatto</p>
                   ) : MAX_SELFIE_ATTEMPTS - selfieAttempts === 1 ? (
@@ -1199,34 +1169,94 @@ export default function TotemPage() {
                       Ultimo tentativo disponibile se rifai la foto
                     </p>
                   ) : (
-                    <p className="text-[1.4rem] text-muted-foreground">Se sei soddisfatto/a, procedi al quiz</p>
+                    <p className="text-[1.4rem] text-muted-foreground">Conferma per proseguire o scatta di nuovo</p>
                   )}
                 </div>
 
-                <div className="flex items-center justify-center gap-5 w-full flex-wrap">
+                <div className="grid grid-cols-2 gap-4 w-full">
                   {selfieAttempts < MAX_SELFIE_ATTEMPTS && (
                     <button
                       onClick={retrySelfie}
-                      className="flex items-center gap-3 text-[1.4rem] font-semibold px-8 py-5 rounded-full border-2 transition-colors"
+                      className="h-[110px] rounded-3xl px-6 flex items-center justify-between border-2 transition-colors active:scale-[0.98]"
                       style={{
-                        borderColor: MAX_SELFIE_ATTEMPTS - selfieAttempts === 1 ? BTN.destructive : BTN.neutral,
-                        color: MAX_SELFIE_ATTEMPTS - selfieAttempts === 1 ? BTN.destructive : BTN.neutral,
+                        borderColor: MAX_SELFIE_ATTEMPTS - selfieAttempts === 1 ? BTN.destructive : "hsl(var(--border))",
+                        color: MAX_SELFIE_ATTEMPTS - selfieAttempts === 1 ? BTN.destructive : "hsl(var(--foreground))",
                       }}
                     >
-                      <RefreshIcon className="w-6 h-6" /> Riprova ({MAX_SELFIE_ATTEMPTS - selfieAttempts})
+                      <span className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center shrink-0">
+                        <RefreshIcon className="w-6 h-6" />
+                      </span>
+                      <span className="flex flex-col items-end min-w-0">
+                        <span className="text-[1.4rem] font-bold uppercase tracking-wide leading-tight">Riprova</span>
+                        <span className="text-[1.05rem] font-medium opacity-70">
+                          ({MAX_SELFIE_ATTEMPTS - selfieAttempts} rimasti)
+                        </span>
+                      </span>
                     </button>
                   )}
                   <button
                     onClick={confirmSelfie}
-                    className="flex items-center gap-3 text-[1.4rem] font-bold px-10 py-5 rounded-full text-white shadow-lg active:scale-95 transition-transform"
+                    className={`h-[110px] rounded-3xl px-6 flex items-center justify-between text-white shadow-xl active:scale-[0.98] transition-transform ${
+                      selfieAttempts >= MAX_SELFIE_ATTEMPTS ? "col-span-2" : ""
+                    }`}
                     style={{ background: BTN.success }}
                   >
-                    <CheckIcon className="w-6 h-6" /> Usa questa foto
+                    <span className="flex flex-col items-start min-w-0">
+                      <span className="text-[1.4rem] font-black uppercase tracking-wide leading-tight">Usa questa foto</span>
+                      <span className="text-[1.05rem] font-semibold opacity-85 uppercase tracking-wider">Conferma e procedi</span>
+                    </span>
+                    <span className="w-12 h-12 rounded-xl bg-white flex items-center justify-center shrink-0">
+                      <CheckIcon className="w-7 h-7" style={{ color: BTN.success }} />
+                    </span>
                   </button>
                 </div>
               </>
             )}
           </div>
+
+          {/* Countdown scatto — overlay fullscreen, anello + numero in gradiente HERA + flash */}
+          {shutterCountdown !== null && (
+            <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40">
+              {/* Bagliore pulsante dietro il numero */}
+              <div className="absolute w-[420px] h-[420px] rounded-full bg-white/10 blur-3xl animate-pulse" />
+
+              <div className="relative flex items-center justify-center" style={{ width: 340, height: 340 }}>
+                <svg width="340" height="340" viewBox="0 0 340 340" className="absolute inset-0 -rotate-90">
+                  <circle cx="170" cy="170" r="150" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="8" />
+                  <circle
+                    cx="170" cy="170" r="150" fill="none"
+                    stroke="url(#selfieCountdownGradient)" strokeWidth="10" strokeLinecap="round"
+                    strokeDasharray={2 * Math.PI * 150}
+                    strokeDashoffset={2 * Math.PI * 150 * (1 - shutterCountdown / 5)}
+                    style={{ transition: "stroke-dashoffset 1s linear" }}
+                  />
+                  <defs>
+                    <linearGradient id="selfieCountdownGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor={HERA_COLORS.verde} />
+                      <stop offset="50%" stopColor={HERA_COLORS.ciano} />
+                      <stop offset="100%" stopColor={HERA_COLORS.magenta} />
+                    </linearGradient>
+                  </defs>
+                </svg>
+                <span
+                  className="font-black bg-clip-text text-transparent"
+                  style={{
+                    fontSize: shutterCountdown === 0 ? "3.5rem" : "6.3rem",
+                    backgroundImage: `linear-gradient(135deg, ${HERA_COLORS.verde}, ${HERA_COLORS.ciano}, ${HERA_COLORS.magenta})`,
+                    filter: "drop-shadow(0 2px 12px rgba(0,0,0,0.35))",
+                  }}
+                >
+                  {shutterCountdown === 0 ? "CHEESE!" : shutterCountdown}
+                </span>
+              </div>
+
+              {/* Flash bianco al momento dello scatto */}
+              <div
+                className="absolute inset-0 bg-white transition-opacity duration-150 pointer-events-none"
+                style={{ opacity: shutterCountdown === 0 ? 0.85 : 0 }}
+              />
+            </div>
+          )}
         </div>
       )}
 
