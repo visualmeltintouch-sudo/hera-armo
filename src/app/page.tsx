@@ -107,6 +107,22 @@ function randomFrom<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
+// Placeholder temporanei in attesa delle immagini reali fornite dal cliente.
+const PLACEHOLDER_IMAGE_POOL = [
+  "/images/quiz/q8_a_shade_park.jpg",
+  "/images/quiz/q8_b_shower_splash.jpg",
+  "/images/quiz/q18_a_hiking_trail.jpg",
+];
+
+function pickPlaceholderImage(questionId: string, opt: SelectedOption): string {
+  const key = `${questionId}-${opt}`;
+  let hash = 0;
+  for (let i = 0; i < key.length; i++) {
+    hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
+  }
+  return PLACEHOLDER_IMAGE_POOL[hash % PLACEHOLDER_IMAGE_POOL.length];
+}
+
 export default function TotemPage() {
   const supabase = createClient();
 
@@ -1290,9 +1306,8 @@ export default function TotemPage() {
               <div className="flex flex-col gap-5">
                 {(["a", "b"] as SelectedOption[]).map((opt) => {
                   const text = opt === "a" ? currentQuestion.option_a_text : currentQuestion.option_b_text;
-                  const imageUrl =
-                    (opt === "a" ? currentQuestion.option_a_image : currentQuestion.option_b_image) ||
-                    "/images/quiz/placeholder.svg";
+                  const realImage = opt === "a" ? currentQuestion.option_a_image : currentQuestion.option_b_image;
+                  const imageUrl = realImage || pickPlaceholderImage(currentQuestion.id, opt);
                   const isSelected = selectedAnswers[currentQuestion.id] === opt;
                   return (
                     <button
