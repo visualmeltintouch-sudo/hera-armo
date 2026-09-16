@@ -1594,7 +1594,7 @@ export default function TotemPage() {
                       <span className="text-[1.05rem] font-bold uppercase tracking-wide" style={{ color: cat.color }}>
                         {cat.label}
                       </span>
-                      <span className="text-[0.9rem] text-muted-foreground leading-snug">
+                      <span className="text-[1.05rem] text-muted-foreground leading-snug">
                         {CATEGORY_SUBLABEL[key]}
                       </span>
                     </div>
@@ -1621,7 +1621,7 @@ export default function TotemPage() {
                   )}
                   <div className="text-left">
                     <p className="text-[1.1025rem] font-bold text-foreground">Scarica la tua Cartolina Hera</p>
-                    <p className="text-[0.95rem] text-muted-foreground leading-snug">
+                    <p className="text-[1.05rem] text-muted-foreground leading-snug">
                       Inquadra il QR con lo smartphone per salvarla
                     </p>
                   </div>
