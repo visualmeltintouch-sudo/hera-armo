@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { scoresToGradient } from "@/lib/gradient";
+import { scoresToConicGradient } from "@/lib/gradient";
 import { generatePostcard, downloadPostcard } from "@/lib/postcard";
 import { HERA_COLORS } from "@/lib/constants";
 import { KioskKeyboard } from "@/components/kiosk/KioskKeyboard";
@@ -89,41 +89,6 @@ const CATEGORY_SUBLABEL: Record<string, string> = {
   ciano: "Consumo consapevole",
   magenta: "Efficienza energetica",
 };
-
-/**
- * Calcola i 3 archi colorati dell'anello segmentato attorno alla foto,
- * proporzionati al peso normalizzato di ciascuna categoria (con lo stesso
- * floor all'8% usato dal gradiente lineare, cosi' nessun colore sparisce
- * mai del tutto), separati da un piccolo gap fisso.
- */
-function buildRingSegments(
-  weights: { verde: number; ciano: number; magenta: number },
-  radius: number,
-  gapDeg = 10
-): { color: string; dashArray: string; dashOffset: number }[] {
-  const circumference = 2 * Math.PI * radius;
-  const order: { key: keyof typeof weights; color: string }[] = [
-    { key: "verde", color: HERA_COLORS.verde },
-    { key: "ciano", color: HERA_COLORS.ciano },
-    { key: "magenta", color: HERA_COLORS.magenta },
-  ];
-  const floored = order.map((o) => ({ ...o, w: Math.max(weights[o.key], 0.08) }));
-  const totalW = floored.reduce((s, o) => s + o.w, 0);
-  const availableDeg = 360 - gapDeg * floored.length;
-
-  let cursorDeg = 0;
-  return floored.map((o) => {
-    const sweepDeg = (o.w / totalW) * availableDeg;
-    const startLen = (cursorDeg / 360) * circumference;
-    const sweepLen = (sweepDeg / 360) * circumference;
-    cursorDeg += sweepDeg + gapDeg;
-    return {
-      color: o.color,
-      dashArray: `${sweepLen} ${circumference - sweepLen}`,
-      dashOffset: -startLen,
-    };
-  });
-}
 
 const MEDIAPIPE_CDN = "https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation";
 const FACE_DETECTION_CDN = "https://cdn.jsdelivr.net/npm/@mediapipe/face_detection";
@@ -526,13 +491,13 @@ export default function TotemPage() {
     const faceArea = face.w * face.h;
 
     // Calcola il padding intorno al viso in base alla sua dimensione relativa
-    // Viso grande (>15%) → più zoom-out (padding 2.6×)
-    // Viso piccolo (<5%) → più zoom-in (padding 1.3×)
-    // Normale → padding 1.9× (zoom-out leggero per far vedere anche le spalle)
+    // Viso grande (>15%) → più zoom-out (padding 3.2×)
+    // Viso piccolo (<5%) → più zoom-in (padding 1.7×)
+    // Normale → padding 2.4× (ulteriore zoom-out richiesto: troppo stretto sul volto)
     let padding: number;
-    if (faceArea > 0.15) padding = 2.6;
-    else if (faceArea < 0.05) padding = 1.3;
-    else padding = 1.9;
+    if (faceArea > 0.15) padding = 3.2;
+    else if (faceArea < 0.05) padding = 1.7;
+    else padding = 2.4;
 
     // Crop square centrato sul viso con il padding calcolato
     const faceSizePx = Math.max(face.w * W, face.h * H);
@@ -908,18 +873,16 @@ export default function TotemPage() {
     setScreen("intro");
   }
 
-  const gradient = scoresToGradient(finalScores);
+  const conicGradient = scoresToConicGradient(finalScores);
   const currentQuestion = questions[currentQuestionIndex];
 
   // Percentuali normalizzate per la card risultato (sommano ~100%, a
   // differenza di punteggi grezzi che dipendono dal numero di domande).
   const resultPercentages = {
-    verde: Math.round(gradient.weights.verde * 100),
-    ciano: Math.round(gradient.weights.ciano * 100),
-    magenta: Math.round(gradient.weights.magenta * 100),
+    verde: Math.round(conicGradient.weights.verde * 100),
+    ciano: Math.round(conicGradient.weights.ciano * 100),
+    magenta: Math.round(conicGradient.weights.magenta * 100),
   };
-  const RESULT_RING_R = 150;
-  const resultRingSegments = buildRingSegments(gradient.weights, RESULT_RING_R);
 
   // Countdown premio come anello SVG (attesa resa informativa)
   const RING_R = 54;
@@ -1541,25 +1504,14 @@ export default function TotemPage() {
                 )}
               </div>
 
-              {/* Foto con anello segmentato — focal point, reveal animato */}
+              {/* Foto con anello a sfumatura HERA — focal point, reveal animato */}
               <div
-                className="relative flex items-center justify-center shrink-0"
-                style={{ width: 340, height: 340, animation: "heraReveal 700ms cubic-bezier(0.16,1,0.3,1) both" }}
+                className="rounded-full p-5 shadow-2xl shrink-0"
+                style={{ background: conicGradient.css, width: 340, height: 340, animation: "heraReveal 700ms cubic-bezier(0.16,1,0.3,1) both" }}
               >
-                <svg width={340} height={340} viewBox="0 0 340 340" className="absolute inset-0 -rotate-90">
-                  {resultRingSegments.map((seg, i) => (
-                    <circle
-                      key={i}
-                      cx={170} cy={170} r={RESULT_RING_R}
-                      fill="none" stroke={seg.color} strokeWidth={16} strokeLinecap="round"
-                      strokeDasharray={seg.dashArray}
-                      strokeDashoffset={seg.dashOffset}
-                    />
-                  ))}
-                </svg>
                 <div
-                  className="rounded-full overflow-hidden flex items-center justify-center"
-                  style={{ width: 340 - 56, height: 340 - 56, background: "#e8e0ec" }}
+                  className="rounded-full w-full h-full overflow-hidden flex items-center justify-center"
+                  style={{ background: "#e8e0ec" }}
                 >
                   {selfieProcessing ? (
                     <div className="flex flex-col items-center gap-3">
@@ -1628,12 +1580,13 @@ export default function TotemPage() {
                 </div>
               )}
 
-              {process.env.NODE_ENV === "development" && postcardUrl && (
+              {postcardUrl && (
                 <button
                   onClick={() => downloadPostcard(postcardUrl)}
-                  className="text-[1.05rem] text-muted-foreground/40 underline underline-offset-2"
+                  className="text-[1.05rem] font-semibold underline underline-offset-2"
+                  style={{ color: HERA_COLORS.ciano }}
                 >
-                  [dev] download diretto
+                  ⬇️ Scarica anteprima cartolina
                 </button>
               )}
             </div>

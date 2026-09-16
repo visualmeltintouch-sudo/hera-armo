@@ -72,6 +72,24 @@ export function scoresToGradient(scores: ColorScores): GradientResult {
   return { css, profileKey, weights };
 }
 
+/**
+ * Stessa sfumatura HERA (verde/ciano/magenta) del gradiente lineare, ma
+ * avvolta a 360° per elementi circolari (es. anello attorno alla foto
+ * risultato) — la sfumatura resta continua, senza fasce nette, e il colore
+ * dominante occupa proporzionalmente più spazio nell'anello.
+ */
+export function scoresToConicGradient(scores: ColorScores): GradientResult {
+  const weights = normalizeScores(scores);
+  const profileKey = determineProfile(scores, 2);
+
+  const stops = weightedStops(weights);
+  const css = `conic-gradient(from 0deg, ${stops
+    .map((s) => `${s.color} ${s.position.toFixed(1)}%`)
+    .join(", ")}, ${stops[0].color} 100%)`;
+
+  return { css, profileKey, weights };
+}
+
 export function drawGradientOnCanvas(
   ctx: CanvasRenderingContext2D,
   width: number,

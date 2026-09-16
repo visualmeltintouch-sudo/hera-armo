@@ -12,27 +12,23 @@ function normalizeWeights(scores: ColorScores): { verde: number; ciano: number; 
   return { verde: scores.verde / total, ciano: scores.ciano / total, magenta: scores.magenta / total };
 }
 
-/** Stessa logica di src/app/page.tsx (buildRingSegments) ma in radianti per Canvas 2D. */
-function buildRingArcs(
-  weights: { verde: number; ciano: number; magenta: number },
-  gapDeg = 10
-): { color: string; startRad: number; endRad: number }[] {
+/** Stessa logica di weightedStops in src/lib/gradient.ts, per Canvas 2D. */
+function weightedStops(
+  weights: { verde: number; ciano: number; magenta: number }
+): { color: string; position: number }[] {
   const order: { key: keyof typeof weights; color: string }[] = [
     { key: "verde", color: HERA_COLORS.verde },
     { key: "ciano", color: HERA_COLORS.ciano },
     { key: "magenta", color: HERA_COLORS.magenta },
   ];
   const floored = order.map((o) => ({ ...o, w: Math.max(weights[o.key], 0.08) }));
-  const totalW = floored.reduce((s, o) => s + o.w, 0);
-  const availableDeg = 360 - gapDeg * floored.length;
+  const total = floored.reduce((s, o) => s + o.w, 0);
 
-  let cursorDeg = -90; // parte dall'alto, come sullo schermo
+  let cumulative = 0;
   return floored.map((o) => {
-    const sweepDeg = (o.w / totalW) * availableDeg;
-    const startDeg = cursorDeg;
-    const endDeg = startDeg + sweepDeg;
-    cursorDeg = endDeg + gapDeg;
-    return { color: o.color, startRad: (startDeg * Math.PI) / 180, endRad: (endDeg * Math.PI) / 180 };
+    const midpoint = (cumulative + o.w / 2) / total;
+    cumulative += o.w;
+    return { color: o.color, position: midpoint };
   });
 }
 
@@ -133,19 +129,19 @@ export async function generatePostcard(options: {
   }
   cursorY += 60;
 
-  // Foto con anello segmentato
+  // Foto con anello a sfumatura HERA (stessa sfumatura del gradiente lineare,
+  // avvolta a 360°, colore dominante piu' presente) — stessa resa dello schermo.
   const ringR = 150;
   const ringCx = CARD_WIDTH / 2;
   const ringCy = cursorY + ringR;
-  const arcs = buildRingArcs(weights);
-  ctx.lineCap = "round";
-  ctx.lineWidth = 16;
-  for (const arc of arcs) {
-    ctx.strokeStyle = arc.color;
-    ctx.beginPath();
-    ctx.arc(ringCx, ringCy, ringR, arc.startRad, arc.endRad);
-    ctx.stroke();
-  }
+  const stops = weightedStops(weights);
+  const conic = ctx.createConicGradient(-Math.PI / 2, ringCx, ringCy);
+  stops.forEach((s) => conic.addColorStop(s.position, s.color));
+  conic.addColorStop(1, stops[0].color);
+  ctx.fillStyle = conic;
+  ctx.beginPath();
+  ctx.arc(ringCx, ringCy, ringR, 0, Math.PI * 2);
+  ctx.fill();
   const photoR = ringR - 28;
   ctx.save();
   ctx.beginPath();
