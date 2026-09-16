@@ -481,19 +481,22 @@ export default function TotemPage() {
     const faceArea = face.w * face.h;
 
     // Calcola il padding intorno al viso in base alla sua dimensione relativa
-    // Viso grande (>15%) → più zoom-out (padding 2.2×)
-    // Viso piccolo (<5%) → più zoom-in (padding 1.0×)
-    // Normale → padding 1.6× (meno primo piano rispetto alla versione precedente)
+    // Viso grande (>15%) → più zoom-out (padding 2.6×)
+    // Viso piccolo (<5%) → più zoom-in (padding 1.3×)
+    // Normale → padding 1.9× (zoom-out leggero per far vedere anche le spalle)
     let padding: number;
-    if (faceArea > 0.15) padding = 2.2;
-    else if (faceArea < 0.05) padding = 1.0;
-    else padding = 1.6;
+    if (faceArea > 0.15) padding = 2.6;
+    else if (faceArea < 0.05) padding = 1.3;
+    else padding = 1.9;
 
     // Crop square centrato sul viso con il padding calcolato
     const faceSizePx = Math.max(face.w * W, face.h * H);
     const cropSize = Math.min(Math.max(faceSizePx * padding, 200), Math.min(W, H));
     const faceCxPx = face.cx * W;
-    const faceCyPx = face.cy * H;
+    // Il centro verticale del crop viene spostato leggermente sotto il viso
+    // (verso le spalle) invece che centrato esattamente sul viso, così sopra
+    // la testa resta meno margine vuoto e sotto si vedono un po' le spalle.
+    const faceCyPx = face.cy * H + cropSize * 0.12;
 
     let x0 = faceCxPx - cropSize / 2;
     let y0 = faceCyPx - cropSize / 2;
@@ -1368,13 +1371,13 @@ export default function TotemPage() {
             </div>
           </TopZone>
 
-          <TouchZone>
+          <TouchZone className="-translate-y-[300px]">
             <div className="w-full max-w-[820px] space-y-10">
               <h3 className="text-[1.8375rem] font-black text-foreground leading-snug text-center">
                 {currentQuestion.question_text}
               </h3>
 
-              <div className="flex flex-col gap-5">
+              <div className="flex flex-col gap-9">
                 {(["a", "b"] as SelectedOption[]).map((opt) => {
                   const text = opt === "a" ? currentQuestion.option_a_text : currentQuestion.option_b_text;
                   const realImage = opt === "a" ? currentQuestion.option_a_image : currentQuestion.option_b_image;
@@ -1392,7 +1395,7 @@ export default function TotemPage() {
                           : "border-border bg-card"
                       } ${autoAdvancing ? "pointer-events-none" : ""}`}
                     >
-                      <div className="w-full h-[220px] rounded-xl overflow-hidden bg-muted shrink-0">
+                      <div className="w-full h-[320px] rounded-xl overflow-hidden bg-muted shrink-0">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={imageUrl}
