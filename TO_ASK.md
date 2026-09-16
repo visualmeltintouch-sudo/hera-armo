@@ -79,19 +79,11 @@ Serve definire:
 - Se i consensi già raccolti in fase di registrazione coprono anche il trattamento fotografico, rendendo superfluo un consenso aggiuntivo sul totem
 
 
-## 7. Raccolta dati e integrazione Suitalk
+## 7. Raccolta dati e integrazione Suitalk — AGGIORNATO 2026-09-16
 
-Il totem attualmente non raccoglie dati anagrafici dell'utente — l'identificazione avviene tramite il codice di accesso generato in fase di registrazione. I dati del partecipante (nome, email, ecc.) esistono nel sistema di registrazione esterno ma non vengono trasmessi al totem.
+Confermato dal cliente: Armocromia userà Suitalk tipologia "Evento Itinerante", agganciata alla schermata `form` del totem (dopo la scelta della fascia d'età). Primo evento: La Barcolana.
 
-Se si vuole collegare la sessione di armocromia al profilo del partecipante nel CRM HERA tramite Suitalk, servono:
-
-- Conferma che questa integrazione è in scope per il primo go-live o se è rimandabile
-- URL dello snippet JavaScript Suitalk da caricare
-- eventID dell'evento
-- Parametro queue specifico per questa attività
-- Mapping dei campi: quali dati della sessione (profilo, punteggi, timestamp) devono essere trasmessi al CRM e con quale nome campo
-
-In assenza di integrazione, i dati delle sessioni restano disponibili solo nel pannello admin.
+Il dettaglio completo delle domande aperte (valorizzazione parametri, endpoint di ritorno, staging, whitelisting dominio) è in `TO ASK.md` → sezione "Suitalk / Registrazione", aggiornata a valle del documento "Form di inserimento lead - Documentazione - ALPHAOMEGA - v2".
 
 
 ## 8. URL della landing page di registrazione

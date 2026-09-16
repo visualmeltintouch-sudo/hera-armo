@@ -354,6 +354,43 @@ export default function TotemPage() {
     const fullName = `${formNome.trim()} ${formCognome.trim()}`;
     setUserName(fullName);
 
+    // ── SIMULAZIONE SUITALK (solo console, nessun invio reale) ──────────────
+    // Finché non abbiamo i parametri definitivi dal cliente (eventID, queue,
+    // promoter) e il vero snippet, logghiamo qui il payload che INVIEREMMO,
+    // per verificare che i campi mappino correttamente. Vedi armocromia/TO ASK.md.
+    if (process.env.NODE_ENV === "development") {
+      const suitalkConfig = {
+        customerCode: "alphaomega", // fisso, confermato da doc v2
+        eventID: "TODO-la-barcolana", // da HeraComm/AlphaOmega
+        sessionID: crypto.randomUUID(),
+        queue: "TODO-Web_Standard-o-Web_Special", // da confermare
+        promoter: "TODO-hc-o-ee", // da confermare
+      };
+      const simulatedLeadPayload = {
+        type: "traveling-event",
+        nome: formNome.trim(),
+        cognome: formCognome.trim(),
+        email: formEmail.trim(),
+        telefono: formTelefono.trim(),
+        age_group: ageGroup,
+        consenso_gaming_obbligatorio: consenso1,
+        consenso_ricontatto_commerciale: consenso2,
+        consenso_profilazione: consenso3,
+        timestamp: new Date().toISOString(),
+      };
+      console.group("%c[SUITALK SIMULAZIONE] nessun dato reale inviato", "color:#E4007D;font-weight:bold");
+      console.log("SuitalkParam (config snippet):", suitalkConfig);
+      console.log("Payload lead che verrebbe inviato:", simulatedLeadPayload);
+      console.warn(
+        "Campi presenti nel doc Suitalk ma NON gestiti nel nostro form attuale: " +
+        "'comune' (usato per switch privacy territoriale HC/EE su Evento Generico, " +
+        "da verificare se si applica anche a Evento Itinerante), 'promoter' (non è un dato utente, " +
+        "va configurato per evento). 'consenso_profilazione' è nostro extra, non descritto nel doc Suitalk " +
+        "per Evento Itinerante — verificare se il widget reale lo prevede o se va tolto/mappato diversamente."
+      );
+      console.groupEnd();
+    }
+
     // Salva partecipante — best effort, non bloccante. I dati generati dal
     // tasto "COMPILA" non vengono mai scritti nel db ufficiale.
     if (!isFakeTestData) {
