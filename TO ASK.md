@@ -28,7 +28,7 @@ Domande aggiornate rispetto alla v2 del documento bizConsulting/AlphaOmega:
 
 4. **Ambiente di Staging**: il doc chiede che il Fornitore condivida uno staging che rispecchi la produzione, con lo snippet dedicato (`.../stage/v1/suitalk-js`) prima del go-live. Proponiamo `hera-armo.vercel.app` (o un branch preview) come staging ufficiale — da comunicare a bizConsulting/HeraComm per il whitelisting.
 
-5. **Whitelisting dominio**: lo snippet funziona solo su domini autorizzati e la produzione client è `eventi.gruppohera.it`. Il totem resta su dominio Vercel — va abilitato esplicitamente in stage/prod, o l'intero flusso deve girare sotto `eventi.gruppohera.it`?
+5. **Whitelisting dominio**: lo snippet funziona solo su domini autorizzati e la produzione client è `eventi.gruppohera.it`. **Confermato dall'utente (2026-09-16)**: si resta verosimilmente su Vercel, al massimo con un dominio custom di propria competenza (es. ipotesi "totemeventi") — non è previsto il trasferimento sotto `eventi.gruppohera.it`. Va comunque comunicato/whitelistato il dominio scelto sia in stage che in produzione con bizConsulting.
 
 6. **Rapporto col consenso foto/GDPR già previsto sul totem** (vedi §6 in `TO_ASK.md`): l'informativa privacy di Suitalk (concorso a premi, differenziata HC/EE) copre anche il trattamento della foto per la postcard, o restano due consensi distinti?
 

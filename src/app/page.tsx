@@ -32,7 +32,7 @@ type Screen =
 
 type SelfieStep = "idle" | "capturing" | "preview";
 type AgeGroup = "young" | "classic";
-type KioskField = "nome" | "cognome" | "email" | "telefono";
+type KioskField = "nome" | "cognome" | "email" | "telefono" | "comune";
 
 // Kiosk 1080x1920 — vincoli d'uso: la fascia 0-450px dall'alto è scomoda da
 // raggiungere e non deve contenere nulla di cliccabile; gli ultimi 200px in
@@ -140,6 +140,7 @@ export default function TotemPage() {
   const [formCognome, setFormCognome] = useState("");
   const [formEmail, setFormEmail] = useState("");
   const [formTelefono, setFormTelefono] = useState("");
+  const [formComune, setFormComune] = useState("");
   const [consenso1, setConsenso1] = useState(false);
   const [consenso2, setConsenso2] = useState(false);
   const [consenso3, setConsenso3] = useState(false);
@@ -250,6 +251,7 @@ export default function TotemPage() {
     cognome:  { value: formCognome,  set: (v) => { setFormCognome(v);  setIsFakeTestData(false); }, variant: "text",  label: "Cognome" },
     email:    { value: formEmail,    set: (v) => { setFormEmail(v);    setIsFakeTestData(false); }, variant: "email", label: "Email" },
     telefono: { value: formTelefono, set: (v) => { setFormTelefono(v); setIsFakeTestData(false); }, variant: "tel",   label: "Telefono" },
+    comune:   { value: formComune,   set: (v) => { setFormComune(v);   setIsFakeTestData(false); }, variant: "text",  label: "Comune" },
   };
 
   function closeKioskKeyboard() {
@@ -339,7 +341,7 @@ export default function TotemPage() {
   }
 
   async function handleFormSubmit() {
-    if (!formNome.trim() || !formCognome.trim() || !formEmail.trim() || !formTelefono.trim()) {
+    if (!formNome.trim() || !formCognome.trim() || !formEmail.trim() || !formTelefono.trim() || !formComune.trim()) {
       setFormError("Compila tutti i campi obbligatori");
       return;
     }
@@ -372,27 +374,29 @@ export default function TotemPage() {
         cognome: formCognome.trim(),
         email: formEmail.trim(),
         telefono: formTelefono.trim(),
+        comune: formComune.trim(), // campo cautelativo — vedi nota UI, da confermare col cliente
         age_group: ageGroup,
         consenso_gaming_obbligatorio: consenso1,
         consenso_ricontatto_commerciale: consenso2,
-        consenso_profilazione: consenso3,
+        "consenso_profilazione (da confermare se va tenuto)": consenso3,
         timestamp: new Date().toISOString(),
       };
       console.group("%c[SUITALK SIMULAZIONE] nessun dato reale inviato", "color:#E4007D;font-weight:bold");
       console.log("SuitalkParam (config snippet):", suitalkConfig);
       console.log("Payload lead che verrebbe inviato:", simulatedLeadPayload);
       console.warn(
-        "Campi presenti nel doc Suitalk ma NON gestiti nel nostro form attuale: " +
-        "'comune' (usato per switch privacy territoriale HC/EE su Evento Generico, " +
-        "da verificare se si applica anche a Evento Itinerante), 'promoter' (non è un dato utente, " +
-        "va configurato per evento). 'consenso_profilazione' è nostro extra, non descritto nel doc Suitalk " +
-        "per Evento Itinerante — verificare se il widget reale lo prevede o se va tolto/mappato diversamente."
+        "'promoter' non è un dato utente ma va configurato per evento (hc/ee) — ancora da confermare. " +
+        "'comune' è stato aggiunto al form ma resta da confermare se serve anche per Evento Itinerante " +
+        "(nel doc è descritto solo per Evento Generico). 'consenso_profilazione' è un nostro extra, non " +
+        "descritto nel doc Suitalk per Evento Itinerante — verificare se il widget reale lo prevede o va tolto."
       );
       console.groupEnd();
     }
 
     // Salva partecipante — best effort, non bloccante. I dati generati dal
     // tasto "COMPILA" non vengono mai scritti nel db ufficiale.
+    // NB: "comune" non viene ancora salvato qui — manca la colonna su
+    // hera_armo_participants (serve una migration quando il campo sarà confermato).
     if (!isFakeTestData) {
       try {
         await supabase.from("hera_armo_participants").insert({
@@ -1036,6 +1040,35 @@ export default function TotemPage() {
                 </div>
               ))}
 
+              {/* Campo "comune" — aggiunto in via cautelativa, non ancora confermato dal
+                  cliente per il form "Evento Itinerante" (il doc Suitalk v2 lo descrive
+                  solo per "Evento Generico", per lo switch privacy territoriale HC/EE). */}
+              <div className="space-y-2">
+                <label className="text-[1.1025rem] font-semibold text-foreground">
+                  Comune <span className="text-destructive">*</span>
+                </label>
+                <input
+                  type="text"
+                  inputMode="none"
+                  autoComplete="off"
+                  spellCheck={false}
+                  value={KIOSK_FIELDS.comune.value}
+                  onChange={(e) => KIOSK_FIELDS.comune.set(e.target.value)}
+                  onFocus={() => { setActiveKioskField("comune"); lastKioskFieldRef.current = "comune"; }}
+                  onBlur={() => setActiveKioskField((cur) => (cur === "comune" ? null : cur))}
+                  placeholder="Bologna"
+                  className={`w-full text-[1.75rem] px-6 py-4 rounded-2xl border-2 bg-card text-foreground placeholder-muted-foreground/40 outline-none transition-colors ${
+                    activeKioskField === "comune" ? "border-primary" : "border-border"
+                  }`}
+                />
+                <p className="text-[1.05rem] text-destructive/80 leading-snug">
+                  * Campo aggiunto in via cautelativa: nel documento Suitalk questo dato serve a
+                  cambiare il link privacy (HeraComm/EstEnergy) sul form "Evento Generico" — non
+                  sappiamo ancora se serve anche su "Evento Itinerante" (il nostro caso). Da
+                  confermare col cliente prima del go-live.
+                </p>
+              </div>
+
               {/* Consensi */}
               <div className="space-y-4 pt-2">
                 {[
@@ -1057,10 +1090,11 @@ export default function TotemPage() {
                     key: "c3",
                     value: consenso3,
                     setter: setConsenso3,
-                    label: "Acconsento alla profilazione dei miei dati per finalità di marketing personalizzato",
+                    label: "Acconsento alla profilazione dei miei dati per finalità di marketing personalizzato (da confermare se va mantenuto — non descritto nel doc Suitalk per Evento Itinerante)",
                     required: false,
+                    unsure: true,
                   },
-                ].map(({ key, value, setter, label, required }) => (
+                ].map(({ key, value, setter, label, required, unsure }) => (
                   <button
                     key={key}
                     onClick={() => setter(!value)}
@@ -1073,12 +1107,12 @@ export default function TotemPage() {
                     >
                       {value && <span className="text-white font-bold text-[1.225rem]">✓</span>}
                     </div>
-                    <span className="text-[1.1025rem] text-foreground/80 leading-snug">
+                    <span className={`text-[1.1025rem] leading-snug ${unsure ? "text-destructive/80" : "text-foreground/80"}`}>
                       {label}
                       {required ? (
                         <span className="text-destructive ml-1">*</span>
                       ) : (
-                        <span className="text-muted-foreground ml-1">(facoltativo)</span>
+                        <span className={unsure ? "text-destructive/70 ml-1" : "text-muted-foreground ml-1"}>(facoltativo)</span>
                       )}
                     </span>
                   </button>
