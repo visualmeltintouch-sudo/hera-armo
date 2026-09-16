@@ -81,6 +81,50 @@ const CATEGORY_ICONS: Record<string, { icon: string; label: string; color: strin
   magenta: { icon: "⚡", label: "Energia",  color: HERA_COLORS.magenta },
 };
 
+// Microcopy generica per le 3 categorie sulla card risultato — placeholder
+// neutro in attesa di testi definitivi validati dal team copy HERA (vedi
+// TO_ASK.md, punto 9 "Contenuti testuali").
+const CATEGORY_SUBLABEL: Record<string, string> = {
+  verde: "Rispetto per l'ambiente",
+  ciano: "Consumo consapevole",
+  magenta: "Efficienza energetica",
+};
+
+/**
+ * Calcola i 3 archi colorati dell'anello segmentato attorno alla foto,
+ * proporzionati al peso normalizzato di ciascuna categoria (con lo stesso
+ * floor all'8% usato dal gradiente lineare, cosi' nessun colore sparisce
+ * mai del tutto), separati da un piccolo gap fisso.
+ */
+function buildRingSegments(
+  weights: { verde: number; ciano: number; magenta: number },
+  radius: number,
+  gapDeg = 10
+): { color: string; dashArray: string; dashOffset: number }[] {
+  const circumference = 2 * Math.PI * radius;
+  const order: { key: keyof typeof weights; color: string }[] = [
+    { key: "verde", color: HERA_COLORS.verde },
+    { key: "ciano", color: HERA_COLORS.ciano },
+    { key: "magenta", color: HERA_COLORS.magenta },
+  ];
+  const floored = order.map((o) => ({ ...o, w: Math.max(weights[o.key], 0.08) }));
+  const totalW = floored.reduce((s, o) => s + o.w, 0);
+  const availableDeg = 360 - gapDeg * floored.length;
+
+  let cursorDeg = 0;
+  return floored.map((o) => {
+    const sweepDeg = (o.w / totalW) * availableDeg;
+    const startLen = (cursorDeg / 360) * circumference;
+    const sweepLen = (sweepDeg / 360) * circumference;
+    cursorDeg += sweepDeg + gapDeg;
+    return {
+      color: o.color,
+      dashArray: `${sweepLen} ${circumference - sweepLen}`,
+      dashOffset: -startLen,
+    };
+  });
+}
+
 const MEDIAPIPE_CDN = "https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation";
 const FACE_DETECTION_CDN = "https://cdn.jsdelivr.net/npm/@mediapipe/face_detection";
 
@@ -236,6 +280,7 @@ export default function TotemPage() {
       scores: finalScores,
       profileName: profile.name,
       claim: profile.claim ?? "",
+      description: profile.description ?? "",
       photoUrl: selfieDataUrl,
     }).then((url) => {
       setPostcardUrl(url);
@@ -798,6 +843,7 @@ export default function TotemPage() {
         scores,
         profileName: (profileData as ArmoProfile)?.name || playResult.profile_key,
         claim: (profileData as ArmoProfile)?.claim || "",
+        description: (profileData as ArmoProfile)?.description || "",
         photoUrl: selfieDataUrl ?? undefined,
       });
       setPostcardUrl(url);
@@ -864,6 +910,16 @@ export default function TotemPage() {
 
   const gradient = scoresToGradient(finalScores);
   const currentQuestion = questions[currentQuestionIndex];
+
+  // Percentuali normalizzate per la card risultato (sommano ~100%, a
+  // differenza di punteggi grezzi che dipendono dal numero di domande).
+  const resultPercentages = {
+    verde: Math.round(gradient.weights.verde * 100),
+    ciano: Math.round(gradient.weights.ciano * 100),
+    magenta: Math.round(gradient.weights.magenta * 100),
+  };
+  const RESULT_RING_R = 150;
+  const resultRingSegments = buildRingSegments(gradient.weights, RESULT_RING_R);
 
   // Countdown premio come anello SVG (attesa resa informativa)
   const RING_R = 54;
@@ -1463,138 +1519,159 @@ export default function TotemPage() {
             }
           `}</style>
 
-          <TopZone>
+          <div className="shrink-0 w-full flex flex-col items-center justify-center gap-3 px-16 text-center" style={{ minHeight: TOP_SAFE }}>
             <HeraLogo className="h-14 w-auto" />
-            <p className="text-[1.75rem] font-semibold text-muted-foreground uppercase tracking-widest">
-              IL TUO GRADIENTE HERA
+            <p className="text-[1.4rem] font-semibold text-muted-foreground uppercase tracking-widest">
+              Profilo Armonico Generato
             </p>
-          </TopZone>
+          </div>
 
-          <TouchZone className="gap-8 justify-start pt-2">
-            {/* Foto con anello gradiente — focal point, reveal animato */}
-            <div
-              className="rounded-full p-5 shadow-2xl"
-              style={{ background: gradient.css, width: 340, height: 340, animation: "heraReveal 700ms cubic-bezier(0.16,1,0.3,1) both" }}
-            >
-              <div className="rounded-full w-full h-full overflow-hidden flex items-center justify-center" style={{ background: "#e8e0ec" }}>
-                {selfieProcessing ? (
-                  <div className="flex flex-col items-center gap-3">
-                    <div className="w-12 h-12 rounded-full border-4 border-white/40 border-t-white animate-spin" />
-                    <span className="text-white/80 text-[1.05rem] font-medium">elaborazione...</span>
-                  </div>
-                ) : selfieDataUrl ? (
-                  <img src={selfieDataUrl} alt="Profilo" className="w-full h-full object-cover" />
-                ) : (
-                  <img src="/brand/placeholder-person.svg" alt="Profilo" className="w-full h-full object-cover" />
+          {/* Card scrollabile — non deve mai coprire i tasti azione sotto */}
+          <div className="flex-1 min-h-0 w-full flex flex-col items-center px-16 pb-6">
+            <div className="w-full max-w-[820px] flex-1 min-h-0 overflow-y-auto rounded-[40px] bg-card shadow-2xl px-10 py-10 flex flex-col items-center gap-8">
+              {/* Nome profilo + claim */}
+              <div className="text-center space-y-2">
+                <h2 className="text-[2.94rem] font-black text-foreground tracking-tight leading-none">
+                  {profile?.name || result.profile_key.toUpperCase()}
+                </h2>
+                {profile?.claim && (
+                  <p className="text-[1.47rem] text-muted-foreground max-w-[600px] mx-auto leading-snug">
+                    {profile.claim}
+                  </p>
                 )}
               </div>
-            </div>
 
-            {/* Nome profilo */}
-            <div className="text-center space-y-2">
-              <h2 className="text-[2.94rem] font-black text-foreground tracking-tight leading-none">
-                {profile?.name || result.profile_key.toUpperCase()}
-              </h2>
-              {profile?.claim && (
-                <p className="text-[1.75rem] text-foreground/70 italic max-w-[680px] mx-auto">
-                  {profile.claim}
-                </p>
-              )}
-            </div>
-
-            {/* Barra gradiente */}
-            <div className="w-full max-w-[520px] h-4 rounded-full shadow-md" style={{ background: gradient.css }} />
-
-            {/* Score V/C/M */}
-            <div className="flex justify-center gap-10">
-              {[
-                { key: "verde",   score: result.score_verde },
-                { key: "magenta", score: result.score_magenta },
-                { key: "ciano",   score: result.score_ciano },
-              ].map(({ key, score }) => {
-                const cat = CATEGORY_ICONS[key];
-                return (
-                  <div key={key} className="flex flex-col items-center gap-2">
-                    <div
-                      className="rounded-full flex items-center justify-center text-[1.8375rem]"
-                      style={{ width: 64, height: 64, backgroundColor: cat.color + "22", border: `3px solid ${cat.color}` }}
-                    >
-                      {cat.icon}
-                    </div>
-                    <span className="text-[1.75rem] font-black" style={{ color: cat.color }}>{score}</span>
-                    <span className="text-[1.225rem] text-muted-foreground font-semibold uppercase tracking-wider">{cat.label}</span>
-                  </div>
-                );
-              })}
-            </div>
-
-            {profile?.description && (
-              <p className="text-[1.1025rem] text-muted-foreground max-w-[680px] mx-auto text-center leading-relaxed">
-                {profile.description}
-              </p>
-            )}
-
-            {/* CTA — sempre nella touch zone */}
-            <div className="flex flex-col items-center gap-5 pt-2 w-full max-w-[680px]">
-              {result.code && (
-                <button
-                  onClick={() => setScreen("prize")}
-                  className="w-full flex items-center justify-center gap-4 text-[1.47rem] font-bold px-12 py-6 rounded-full text-white transition-transform active:scale-95 shadow-xl"
-                  style={{ background: BTN.primary }}
+              {/* Foto con anello segmentato — focal point, reveal animato */}
+              <div
+                className="relative flex items-center justify-center shrink-0"
+                style={{ width: 340, height: 340, animation: "heraReveal 700ms cubic-bezier(0.16,1,0.3,1) both" }}
+              >
+                <svg width={340} height={340} viewBox="0 0 340 340" className="absolute inset-0 -rotate-90">
+                  {resultRingSegments.map((seg, i) => (
+                    <circle
+                      key={i}
+                      cx={170} cy={170} r={RESULT_RING_R}
+                      fill="none" stroke={seg.color} strokeWidth={16} strokeLinecap="round"
+                      strokeDasharray={seg.dashArray}
+                      strokeDashoffset={seg.dashOffset}
+                    />
+                  ))}
+                </svg>
+                <div
+                  className="rounded-full overflow-hidden flex items-center justify-center"
+                  style={{ width: 340 - 56, height: 340 - 56, background: "#e8e0ec" }}
                 >
-                  🏆 SCOPRI SE HAI VINTO UN PREMIO
-                </button>
-              )}
-
-              {postcardUrl && (
-                <div className="w-full flex flex-col items-center gap-4 py-2">
-                  <p className="text-[1.75rem] font-bold text-foreground tracking-wide text-center">
-                    Scarica la tua postcard
-                  </p>
-                  {postcardQrUrl ? (
-                    <>
-                      <img src={postcardQrUrl} alt="QR Code postcard" className="w-44 h-44 rounded-2xl shadow-lg" />
-                      <p className="text-[1.4rem] text-muted-foreground text-center">
-                        Inquadra il QR con il tuo smartphone
-                      </p>
-                    </>
-                  ) : (
-                    <div className="w-44 h-44 rounded-2xl bg-muted animate-pulse" />
-                  )}
-
-                  <div className="relative group">
-                    <button
-                      disabled
-                      className="flex items-center gap-3 text-[1.1025rem] font-semibold px-8 py-3 rounded-full border-2 border-muted-foreground/30 text-muted-foreground/50 cursor-not-allowed"
-                    >
-                      ✉️ Invia per email
-                    </button>
-                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 hidden group-hover:block bg-foreground text-background text-[1.225rem] rounded-xl px-4 py-3 w-64 text-center shadow-xl z-10">
-                      Funzione in arrivo — richiede configurazione del servizio email
+                  {selfieProcessing ? (
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="w-12 h-12 rounded-full border-4 border-white/40 border-t-white animate-spin" />
+                      <span className="text-white/80 text-[1.05rem] font-medium">elaborazione...</span>
                     </div>
-                  </div>
-
-                  {process.env.NODE_ENV === "development" && (
-                    <button
-                      onClick={() => downloadPostcard(postcardUrl)}
-                      className="text-[1.225rem] text-muted-foreground/40 underline underline-offset-2"
-                    >
-                      [dev] download diretto
-                    </button>
+                  ) : selfieDataUrl ? (
+                    <img src={selfieDataUrl} alt="Profilo" className="w-full h-full object-cover" />
+                  ) : (
+                    <img src="/brand/placeholder-person.svg" alt="Profilo" className="w-full h-full object-cover" />
                   )}
+                </div>
+              </div>
+
+              {/* Percentuali per categoria — tile, sempre valorizzate */}
+              <div className="w-full grid grid-cols-3 gap-3">
+                {[
+                  { key: "verde",   pct: resultPercentages.verde },
+                  { key: "ciano",   pct: resultPercentages.ciano },
+                  { key: "magenta", pct: resultPercentages.magenta },
+                ].map(({ key, pct }) => {
+                  const cat = CATEGORY_ICONS[key];
+                  return (
+                    <div
+                      key={key}
+                      className="rounded-2xl px-3 py-4 flex flex-col items-center gap-1 text-center"
+                      style={{ background: `${cat.color}14` }}
+                    >
+                      <span className="text-[1.75rem] font-black text-foreground leading-none">
+                        {pct}<span className="text-[1.1025rem] align-top">%</span>
+                      </span>
+                      <span className="text-[1.05rem] font-bold uppercase tracking-wide" style={{ color: cat.color }}>
+                        {cat.label}
+                      </span>
+                      <span className="text-[0.9rem] text-muted-foreground leading-snug">
+                        {CATEGORY_SUBLABEL[key]}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {profile?.description && (
+                <div className="w-full rounded-2xl px-6 py-5" style={{ background: "hsl(var(--muted))" }}>
+                  <p className="text-[1.1025rem] font-bold text-foreground mb-1.5">Il tuo profilo Heraviglioso</p>
+                  <p className="text-[1.05rem] text-muted-foreground leading-relaxed">
+                    {profile.description}
+                  </p>
                 </div>
               )}
 
-              {!result.code && (
+              {/* QR postcard — solo a schermo, non sulla cartolina scaricata */}
+              {postcardUrl && (
+                <div className="w-full rounded-2xl px-6 py-5 flex items-center gap-5" style={{ background: `${HERA_COLORS.ciano}14` }}>
+                  {postcardQrUrl ? (
+                    <img src={postcardQrUrl} alt="QR Code postcard" className="w-20 h-20 rounded-xl shadow-md shrink-0" />
+                  ) : (
+                    <div className="w-20 h-20 rounded-xl bg-muted animate-pulse shrink-0" />
+                  )}
+                  <div className="text-left">
+                    <p className="text-[1.1025rem] font-bold text-foreground">Scarica la tua Cartolina Hera</p>
+                    <p className="text-[0.95rem] text-muted-foreground leading-snug">
+                      Inquadra il QR con lo smartphone per salvarla
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {process.env.NODE_ENV === "development" && postcardUrl && (
                 <button
-                  onClick={handleRestart}
-                  className="text-[1.75rem] font-semibold px-10 py-4 text-muted-foreground underline"
+                  onClick={() => downloadPostcard(postcardUrl)}
+                  className="text-[1.05rem] text-muted-foreground/40 underline underline-offset-2"
                 >
-                  Ricomincia
+                  [dev] download diretto
                 </button>
               )}
             </div>
-          </TouchZone>
+          </div>
+
+          {/* CTA — fuori dalla card, sempre visibili senza scroll */}
+          <div className="shrink-0 w-full flex flex-col items-center gap-4 px-16 pb-4">
+            {result.code && (
+              <button
+                onClick={() => setScreen("prize")}
+                className="w-full max-w-[680px] flex items-center justify-center gap-4 text-[1.47rem] font-bold px-12 py-6 rounded-full text-white transition-transform active:scale-95 shadow-xl"
+                style={{ background: BTN.primary }}
+              >
+                🏆 SCOPRI SE HAI VINTO UN PREMIO
+              </button>
+            )}
+
+            <div className="relative group">
+              <button
+                disabled
+                className="flex items-center gap-3 text-[1.1025rem] font-semibold px-8 py-3 rounded-full border-2 border-muted-foreground/30 text-muted-foreground/50 cursor-not-allowed"
+              >
+                ✉️ Invia per email
+              </button>
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 hidden group-hover:block bg-foreground text-background text-[1.225rem] rounded-xl px-4 py-3 w-64 text-center shadow-xl z-10">
+                Funzione in arrivo — richiede configurazione del servizio email
+              </div>
+            </div>
+
+            {!result.code && (
+              <button
+                onClick={handleRestart}
+                className="text-[1.4rem] font-semibold px-10 py-2 text-muted-foreground underline"
+              >
+                Ricomincia
+              </button>
+            )}
+          </div>
 
           <BottomSafe />
         </div>
